@@ -1,0 +1,195 @@
+import * as SecureStore from "expo-secure-store";
+import {
+  ApiSuccessResponse,
+  LoginCredentials,
+  RefreshTokenResponse,
+  RegisterCredentials,
+  User,
+} from "@/shared/types/auth.types";
+import { apiClient } from "@/config/api.config";
+import {
+  extractResponseData,
+  handleApiResponse,
+} from "@/shared/utils/api/responseHandler";
+import env from "@/config/env";
+import axios from "axios";
+import { ForgotPasswordDto } from "@/schemas/auth.schema";
+
+interface AuthResponseData {
+  access_token: string;
+  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    fullName?: string;
+  };
+  expires: string;
+  message?: string;
+}
+
+export const authService = {
+  async login(credentials: LoginCredentials): Promise<{
+    data: AuthResponseData;
+    message: string;
+  }> {
+    const response = await apiClient.post<ApiSuccessResponse<AuthResponseData>>(
+      "/auth/login",
+      credentials,
+      {
+        headers: {
+          "X-Skip-Token-Refresh": "true",
+        },
+      }
+    );
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    const { data } = result;
+
+    if (!data.access_token || !data.refresh_token || !data.user) {
+      throw new Error(data.message || "Invalid credentials!");
+    }
+
+    return {
+      data,
+      message: result.data.message || "Login successful!",
+    };
+  },
+
+  async register(credentials: RegisterCredentials): Promise<{
+    data: AuthResponseData;
+    message: string;
+  }> {
+    const response = await apiClient.post<ApiSuccessResponse<AuthResponseData>>(
+      "/auth/register",
+      credentials
+    );
+    const result = handleApiResponse(response);
+
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    const { data } = result;
+
+    if (!data.access_token || !data.refresh_token || !data.user) {
+      throw new Error(data.message || "Registration failed!");
+    }
+
+    return {
+      data,
+      message: result.data.message || "Registration successful!",
+    };
+  },
+
+  async logout(): Promise<{ message: string }> {
+    const refreshToken = await SecureStore.getItemAsync("refresh_token");
+
+    const response = await apiClient.post("/auth/logout", {
+      refresh_token: refreshToken,
+    });
+
+    const result = handleApiResponse(response);
+
+    if (!refreshToken) {
+      throw new Error(result.message || "Registration failed!");
+    }
+
+    await SecureStore.deleteItemAsync("access_token");
+    await SecureStore.deleteItemAsync("refresh_token");
+    await SecureStore.deleteItemAsync("user");
+
+    return {
+      message: result.message || "Logged out successful!",
+    };
+  },
+
+  async forgotPassword(email: ForgotPasswordDto): Promise<{ message: string }> {
+    const response = await apiClient.post<ApiSuccessResponse<null>>(
+      "/auth/forgot-password",
+      email,
+      {
+        headers: {
+          "X-Skip-Token-Refresh": "true",
+        },
+      }
+    );
+    const result = handleApiResponse(response);
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+    return {
+      message: result.message || "Forgot password email sent successfully!",
+    };
+  },
+
+  async updateProfile(updateUser: Partial<User>): Promise<{
+    data: AuthResponseData;
+    message: string;
+  }> {
+    const response = await apiClient.put<ApiSuccessResponse<AuthResponseData>>(
+      "/user/me/update-profile",
+      updateUser
+    );
+    const result = handleApiResponse(response);
+
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+    const { data } = result;
+    return {
+      data,
+      message: data.message || "Profile updated successfully",
+    };
+  },
+
+  async getCurrentUser(): Promise<User> {
+    const response = await apiClient.get<ApiSuccessResponse<User>>("/auth/me");
+    return extractResponseData(response);
+  },
+
+  async handleTokenRefresh(): Promise<string> {
+    const refreshToken = await SecureStore.getItemAsync("refresh_token");
+
+    if (!refreshToken) {
+      throw new Error("No refresh token available");
+    }
+
+    try {
+      // Don't use interceptor for refresh request
+      const response = await axios.post<RefreshTokenResponse>(
+        `${env.apiUrl}/auth/refresh`,
+        { refreshToken }, // Match backend DTO
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "x-client-type": "mobile",
+            Authorization: `Bearer ${refreshToken}`, // Some backends expect this
+          },
+        }
+      );
+
+      const { accessToken, refreshToken: newRefreshToken } = response.data;
+
+      if (!accessToken) {
+        throw new Error("No access token in refresh response");
+      }
+
+      // Store new tokens
+      await SecureStore.setItemAsync("access_token", accessToken);
+
+      if (newRefreshToken) {
+        await SecureStore.setItemAsync("refresh_token", newRefreshToken);
+      }
+
+      return accessToken;
+    } catch (error) {
+      console.error("Token refresh failed:", error);
+      throw error;
+    }
+  },
+};
