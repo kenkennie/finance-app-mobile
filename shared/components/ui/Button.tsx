@@ -13,7 +13,7 @@ import {
 interface ButtonProps {
   children: React.ReactNode;
   onPress?: () => void;
-  variant?: "primary" | "secondary" | "outline" | "ghost";
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
   fullWidth?: boolean;
   disabled?: boolean;
   loading?: boolean;
@@ -38,6 +38,7 @@ export const Button: React.FC<ButtonProps> = ({
     variant === "secondary" && styles.secondary,
     variant === "outline" && styles.outline,
     variant === "ghost" && styles.ghost,
+    variant === "danger" && styles.danger,
     disabled && styles.disabled,
     style,
   ];
@@ -48,6 +49,7 @@ export const Button: React.FC<ButtonProps> = ({
     variant === "secondary" && styles.secondaryText,
     variant === "outline" && styles.outlineText,
     variant === "ghost" && styles.ghostText,
+    variant === "danger" && styles.dangerText,
     textStyle,
   ];
 
@@ -60,7 +62,11 @@ export const Button: React.FC<ButtonProps> = ({
     >
       {loading ? (
         <ActivityIndicator
-          color={variant === "outline" ? colors.primary : colors.background}
+          color={
+            variant === "outline" || variant === "danger"
+              ? colors.error
+              : colors.background
+          }
         />
       ) : (
         <Text style={textStyles}>{children}</Text>
@@ -95,6 +101,11 @@ const styles = StyleSheet.create({
   ghost: {
     backgroundColor: "transparent",
   },
+  danger: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
   disabled: {
     backgroundColor: colors.gray[300],
     opacity: 0.6,
@@ -114,5 +125,8 @@ const styles = StyleSheet.create({
   },
   ghostText: {
     color: colors.text.primary,
+  },
+  dangerText: {
+    color: colors.error,
   },
 });

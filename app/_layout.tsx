@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useToastStore } from "@/store/toastStore";
 import * as SplashScreen from "expo-splash-screen";
 import { Toast } from "@/shared/components/ui/Toast";
+import { ThemeProvider } from "@/theme/context/ThemeContext";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -49,27 +50,29 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animation: "slide_from_right",
-          }}
-        >
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+    <ThemeProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: "slide_from_right",
+            }}
+          >
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
 
-        {/* Global Toast Component */}
-        <Toast
-          visible={visible}
-          message={message}
-          type={type}
-          onHide={hideToast}
-        />
-      </QueryClientProvider>
-    </SafeAreaProvider>
+          {/* Global Toast Component */}
+          <Toast
+            visible={visible}
+            message={message}
+            type={type}
+            onHide={hideToast}
+          />
+        </QueryClientProvider>
+      </SafeAreaProvider>
+    </ThemeProvider>
   );
 }

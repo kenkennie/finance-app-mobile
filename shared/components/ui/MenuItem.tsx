@@ -1,89 +1,138 @@
-import { colors } from "@/theme/colors";
-import { fontSize, spacing } from "@/theme/spacing";
-import { ChevronRight } from "lucide-react-native";
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, StyleSheet } from "react-native";
+import { Card } from "./Card";
+import { Feather } from "@expo/vector-icons";
 
 interface MenuItemProps {
-  icon?: React.ReactNode;
   title: string;
   subtitle?: string;
   onPress?: () => void;
   showArrow?: boolean;
   rightElement?: React.ReactNode;
   disabled?: boolean;
+  isDark?: boolean;
+  iconColor?: string;
+  danger?: boolean;
+  icon?: React.ReactNode | keyof typeof Feather.glyphMap; // Optional, can be React element or Feather icon name
 }
 
 export const MenuItem: React.FC<MenuItemProps> = ({
-  icon,
   title,
   subtitle,
   onPress,
-  showArrow = true,
+  showArrow,
   rightElement,
-  disabled = false,
-}) => (
-  <TouchableOpacity
-    style={[styles.menuItem, disabled && styles.menuItemDisabled]}
-    onPress={onPress}
-    activeOpacity={0.7}
-    disabled={disabled}
-  >
-    <View style={styles.menuItemLeft}>
-      {icon && <View style={styles.menuIcon}>{icon}</View>}
-      <View style={styles.menuTextContainer}>
-        <Text style={styles.menuTitle}>{title}</Text>
-        {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-      </View>
-    </View>
+  disabled,
+  isDark = false,
+  iconColor,
+  danger = false,
+  icon,
+}) => {
+  const defaultIconBg = isDark ? "#2C2C2E" : "#F5F5F5";
 
-    {rightElement
-      ? rightElement
-      : showArrow && (
-          <ChevronRight
+  // Render icon based on type
+  const renderIcon = () => {
+    if (!icon) return null;
+
+    if (React.isValidElement(icon)) {
+      // If icon is a React element, render it directly
+      return icon;
+    }
+
+    if (typeof icon === "string") {
+      // If icon is a string, render as Feather icon
+      return (
+        <Feather
+          name={icon as keyof typeof Feather.glyphMap}
+          size={22}
+          color={danger ? "#EF4444" : isDark ? "#FFF" : "#000"}
+        />
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <Card
+      onPress={onPress}
+      isDark={isDark}
+    >
+      <View style={styles.container}>
+        {icon && (
+          <View
+            style={[
+              styles.iconContainer,
+              { backgroundColor: iconColor || defaultIconBg },
+            ]}
+          >
+            {renderIcon()}
+          </View>
+        )}
+        <View style={[styles.content, !icon && styles.contentNoIcon]}>
+          <Text
+            style={[
+              styles.title,
+              danger && styles.titleDanger,
+              isDark && styles.titleDark,
+            ]}
+          >
+            {title}
+          </Text>
+          {subtitle && (
+            <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+        {!danger && (
+          <Feather
+            name="chevron-right"
             size={20}
-            color={colors.text.secondary}
+            color={isDark ? "#666" : "#999"}
           />
         )}
-  </TouchableOpacity>
-);
+      </View>
+    </Card>
+  );
+};
 
 const styles = StyleSheet.create({
-  menuItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.md,
-  },
-  menuItemDisabled: {
-    opacity: 0.5,
-  },
-  menuItemLeft: {
+  container: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  content: {
     flex: 1,
   },
-  menuIcon: {
-    fontSize: fontSize.md,
-    marginRight: 12,
+  contentNoIcon: {
+    marginLeft: 0,
   },
-  menuTextContainer: {
-    flex: 1,
+  title: {
+    fontSize: 17,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
   },
-  menuTitle: {
-    fontSize: fontSize.md,
-    fontWeight: "500",
-    color: colors.text.primary,
+  titleDark: {
+    color: "#FFF",
   },
-  menuSubtitle: {
-    fontSize: fontSize.sm,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
+  titleDanger: {
+    color: "#EF4444",
   },
-  menuArrow: {
-    fontSize: fontSize.xxl,
-    color: colors.text.secondary,
-    fontWeight: 300,
+  subtitle: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  subtitleDark: {
+    color: "#9CA3AF",
   },
 });

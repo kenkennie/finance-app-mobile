@@ -454,14 +454,14 @@ export default function CategoryManagementScreen() {
       </ScrollView>
 
       {/* Add/Edit Category Modal */}
-      <AddCategoryModal
+      {/* <AddCategoryModal
         visible={showAddModal}
         category={editingCategory}
         onClose={() => {
           setShowAddModal(false);
           setEditingCategory(null);
         }}
-      />
+      /> */}
     </SafeAreaView>
   );
 }

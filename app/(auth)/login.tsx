@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -46,13 +45,9 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: LoginDto) => {
     try {
-      console.log("🔐 Attempting login...");
       const successMessage = await login(data.email, data.password);
       showSuccess(successMessage || "Login successful!");
-      console.log("✅ Login successful, navigating...");
 
-      // ✅ Navigate after successful login
-      // Small delay to ensure state is updated
       setTimeout(() => {
         router.replace("/(tabs)");
       }, 100);
@@ -94,6 +89,8 @@ export default function LoginScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     error={errors.email?.message}
+                    leftIcon="email"
+                    isDark
                   />
                 )}
               />
@@ -108,8 +105,12 @@ export default function LoginScreen() {
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
+                    autoCapitalize="none"
                     secureTextEntry
                     error={errors.password?.message}
+                    leftIcon="password"
+                    showPasswordToggle
+                    isDark
                   />
                 )}
               />

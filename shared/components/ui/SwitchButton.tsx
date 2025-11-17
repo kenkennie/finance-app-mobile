@@ -1,63 +1,88 @@
-import { colors } from "@/theme/colors";
-import { fontSize, spacing } from "@/theme/spacing";
+import { useTheme } from "@/theme/context/ThemeContext";
 import React from "react";
-import { View, Text, Switch, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, Animated } from "react-native";
 
 interface SwitchButtonProps {
-  title: string;
-  description: string;
   value: boolean;
-  onToggle: (newValue: boolean) => void;
+  onValueChange: (value: boolean) => void;
+  disabled?: boolean;
+  title?: string;
+  description?: string;
 }
 
 export const SwitchButton: React.FC<SwitchButtonProps> = ({
+  value,
+  onValueChange,
+  disabled = false,
   title,
   description,
-  value,
-  onToggle,
-}) => (
-  <View style={styles.settingsItem}>
-    <View style={styles.settingsTextContainer}>
-      <Text style={styles.settingsTitle}>{title}</Text>
-      <Text style={styles.settingsDescription}>{description}</Text>
-    </View>
-    <Switch
-      value={value}
-      onValueChange={onToggle}
-      trackColor={{ false: colors.gray[200], true: colors.gray[400] }}
-      thumbColor={value ? colors.primary : colors.gray[300]}
-      ios_backgroundColor={colors.gray[400]}
-    />
-  </View>
-);
+}) => {
+  const { isDark } = useTheme();
+
+  const animatedValue = React.useRef(new Animated.Value(value ? 1 : 0)).current;
+
+  React.useEffect(() => {
+    Animated.timing(animatedValue, {
+      toValue: value ? 1 : 0,
+      duration: 200,
+      useNativeDriver: false,
+    }).start();
+  }, [value]);
+
+  const translateX = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [2, 22],
+  });
+
+  const backgroundColor = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["#D1D5DB", "#2563EB"],
+  });
+
+  const handlePress = () => {
+    if (!disabled) {
+      onValueChange(!value);
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.8}
+      onPress={handlePress}
+      disabled={disabled}
+    >
+      <Animated.View
+        style={[styles.track, { backgroundColor }, disabled && styles.disabled]}
+      >
+        <Animated.View
+          style={[styles.thumb, { transform: [{ translateX }] }]}
+        />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
+  track: {
+    width: 50,
+    height: 30,
+    borderRadius: 15,
+    justifyContent: "center",
   },
-  settingsItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: 16,
+  thumb: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#FFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
   },
-  settingsTextContainer: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  settingsTitle: {
-    fontSize: fontSize.md,
-    fontWeight: 500,
-    color: colors.text.primary,
-    marginBottom: spacing.xs,
-  },
-  settingsDescription: {
-    fontSize: fontSize.sm,
-    color: colors.text.secondary,
-    lineHeight: 20,
+  disabled: {
+    opacity: 0.5,
   },
 });
+
+export default SwitchButton;

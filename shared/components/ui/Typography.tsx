@@ -18,7 +18,7 @@ interface TypographyProps {
   align?: "left" | "center" | "right";
   numberOfLines?: number;
   children: React.ReactNode;
-  style?: TextStyle;
+  style?: TextStyle | TextStyle[];
 }
 
 export const Typography: React.FC<TypographyProps> = ({

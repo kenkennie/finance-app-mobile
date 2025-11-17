@@ -8,7 +8,8 @@ interface UserProfileCardProps {
   name: string;
   email: string;
   avatarUri: string;
-  onEditPress: () => void; // Part 3: Button implementation
+  onEditPress?: () => void; // Part 3: Button implementation
+  isDark: boolean;
 }
 
 export const UserProfileCard: React.FC<UserProfileCardProps> = ({
@@ -16,64 +17,57 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({
   email,
   avatarUri,
   onEditPress,
-}) => (
-  <View style={styles.container}>
-    <Image
-      source={{ uri: avatarUri }}
-      style={styles.avatar}
-    />
-    <View style={styles.info}>
-      <Text style={styles.name}>{name}</Text>
-      <Text style={styles.email}>{email}</Text>
+  isDark = false,
+}) => {
+  const getInitial = () => name.charAt(0).toUpperCase();
+
+  return (
+    <View style={styles.container}>
+      <View style={[styles.avatar, isDark && styles.avatarDark]}>
+        <Text style={styles.initial}>{getInitial()}</Text>
+      </View>
+      <Text style={[styles.name, isDark && styles.nameDark]}>{name}</Text>
+      <Text style={[styles.email, isDark && styles.emailDark]}>{email}</Text>
     </View>
-    <TouchableOpacity
-      style={styles.editButton}
-      onPress={onEditPress} // Implement the click
-      activeOpacity={0.7}
-    >
-      <Text style={styles.editButtonText}>Edit Profile</Text>
-    </TouchableOpacity>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "column",
     alignItems: "center",
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.md,
-    // Add a separator line below the card if needed
+    paddingVertical: 30,
   },
   avatar: {
-    width: 95,
-    height: 95,
-    borderRadius: spacing.xxl,
-    marginBottom: spacing.sm,
-  },
-  info: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "#FED7AA",
     alignItems: "center",
-    marginBottom: spacing.md,
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  avatarDark: {
+    backgroundColor: "#EA580C",
+  },
+  initial: {
+    fontSize: 40,
+    fontWeight: "600",
+    color: "#EA580C",
   },
   name: {
-    fontSize: fontSize.xl,
-    fontWeight: 700,
-    color: colors.text.primary,
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 4,
+  },
+  nameDark: {
+    color: "#FFF",
   },
   email: {
-    fontSize: fontSize.sm,
-    color: colors.text.secondary,
-    marginTop: spacing.xs,
+    fontSize: 16,
+    color: "#6B7280",
   },
-  editButton: {
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: borderRadius.full,
-    paddingVertical: 10,
-    paddingHorizontal: 40,
-  },
-  editButtonText: {
-    color: colors.primary,
-    fontWeight: 600,
-    fontSize: fontSize.md,
+  emailDark: {
+    color: "#9CA3AF",
   },
 });

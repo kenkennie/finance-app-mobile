@@ -1,5 +1,3 @@
-import { colors } from "@/theme/colors";
-import { borderRadius, spacing } from "@/theme/spacing";
 import React from "react";
 import { View, StyleSheet, TouchableOpacity, ViewStyle } from "react-native";
 
@@ -7,33 +5,41 @@ interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
   style?: ViewStyle;
+  isDark?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, onPress, style }) => {
-  const Component = onPress ? TouchableOpacity : View;
+export const Card: React.FC<CardProps> = ({
+  children,
+  onPress,
+  style,
+  isDark,
+}) => {
+  const CardWrapper = onPress ? TouchableOpacity : View;
 
   return (
-    <Component
-      style={[styles.card, style]}
+    <CardWrapper
       onPress={onPress}
+      style={[styles.card, isDark && styles.cardDark, style]}
       activeOpacity={onPress ? 0.7 : 1}
     >
       {children}
-    </Component>
+    </CardWrapper>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: colors.border,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  cardDark: {
+    backgroundColor: "#1C1C1E",
   },
 });
