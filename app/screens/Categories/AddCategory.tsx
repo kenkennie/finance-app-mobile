@@ -2,6 +2,7 @@ import { Header } from "@/shared/components/ui/Header";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
+import { useTheme } from "@/theme/context/ThemeContext";
 import { useToastStore } from "@/store/toastStore";
 import {
   CreateCategoryDto,
@@ -13,6 +14,7 @@ import CategoryForm from "./CategoryForm";
 const AddCategoryScreen = ({}) => {
   const { showSuccess, showError } = useToastStore();
   const router = useRouter();
+  const { isDark } = useTheme();
   const { createCategory, isLoading, clearError, successMessage } =
     useCategoryStore();
 
@@ -34,11 +36,12 @@ const AddCategoryScreen = ({}) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <Header
         title="Create New Category"
         showBack
         onBackPress={() => router.back()}
+        isDark={isDark}
       />
 
       <CategoryForm
@@ -59,6 +62,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F9FAFB",
+  },
+  containerDark: {
+    backgroundColor: "#000",
   },
 });
 

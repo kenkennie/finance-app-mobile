@@ -3,6 +3,7 @@ import { LoadingIndicator } from "@/shared/components/ui/LoadingIndicator";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
+import { useTheme } from "@/theme/context/ThemeContext";
 import { useToastStore } from "@/store/toastStore";
 import { UpdateCategoryDto } from "@/schemas/category.schema";
 import { useCategoryStore } from "@/store/categoryStore";
@@ -12,6 +13,7 @@ import { Category } from "@/shared/types/category.types";
 const EditCategoryScreen = ({}) => {
   const { showSuccess, showError } = useToastStore();
   const router = useRouter();
+  const { isDark } = useTheme();
   const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
   const {
     updateCategory,
@@ -79,11 +81,12 @@ const EditCategoryScreen = ({}) => {
 
   if (loadingCategory || !category) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, isDark && styles.containerDark]}>
         <Header
           title="Edit Category"
           showBack
           onBackPress={() => router.back()}
+          isDark={isDark}
         />
         <LoadingIndicator
           size="large"
@@ -95,11 +98,12 @@ const EditCategoryScreen = ({}) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <Header
         title="Edit Category"
         showBack
         onBackPress={() => router.back()}
+        isDark={isDark}
       />
 
       <CategoryForm
@@ -117,6 +121,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F9FAFB",
+  },
+  containerDark: {
+    backgroundColor: "#000",
   },
   loadingContainer: {
     flex: 1,

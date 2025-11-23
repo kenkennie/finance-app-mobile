@@ -206,7 +206,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
             >
               Customization
             </Typography>
-            <Card>
+            <Card isDark={isDark}>
               <IconColorSelector
                 label="Color"
                 color={selectedColor || "#1976D2"}
@@ -369,7 +369,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
           >
             Customization
           </Typography>
-          <Card>
+          <Card isDark={isDark}>
             <IconColorSelector
               label="Color"
               color={selectedColor || "#1976D2"}
@@ -397,7 +397,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
           >
             Settings
           </Typography>
-          <Card>
+          <Card isDark={isDark}>
             <Controller
               control={control}
               name="isActive"

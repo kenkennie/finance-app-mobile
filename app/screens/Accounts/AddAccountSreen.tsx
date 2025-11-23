@@ -2,6 +2,7 @@ import { Header } from "@/shared/components/ui/Header";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { View, StyleSheet } from "react-native";
+import { useTheme } from "@/theme/context/ThemeContext";
 import { useToastStore } from "@/store/toastStore";
 import { CreateAccountDto, UpdateAccountDto } from "@/schemas/account.schema";
 import { useAccountStore } from "@/store/accountStore";
@@ -10,6 +11,7 @@ import AccountForm from "./AccountForm";
 const CreateAccountScreen = ({}) => {
   const { showSuccess, showError } = useToastStore();
   const router = useRouter();
+  const { isDark } = useTheme();
   const { createAccount, isLoading, clearError, successMessage } =
     useAccountStore();
 
@@ -31,11 +33,12 @@ const CreateAccountScreen = ({}) => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <Header
         title="Create New Account"
         showBack
         onBackPress={() => router.back()}
+        isDark={isDark}
       />
 
       <AccountForm

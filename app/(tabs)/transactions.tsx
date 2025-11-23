@@ -16,6 +16,7 @@ import { Typography } from "@/shared/components/ui/Typography";
 import { TransactionCard } from "../screens/Transactions/TransactionCard";
 import { TabBar } from "@/shared/components/ui/TabBar";
 import { Card } from "@/shared/components/ui/Card";
+import SimpleFilterBottomSheet from "@/shared/components/ui/filters/simpleFilterBottomSheet";
 import { tr } from "zod/v4/locales";
 import { Transaction } from "@/shared/types/filter.types";
 
@@ -66,6 +67,8 @@ const AllTransactions = () => {
   const isDark = colorScheme === "dark";
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [isFilterVisible, setIsFilterVisible] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<any>({});
 
   // Refs for request deduplication
   const currentRequestRef = useRef<string>("");
@@ -77,7 +80,9 @@ const AllTransactions = () => {
   // Fetch transactions when filters change
   useEffect(() => {
     // Create request identifier for deduplication
-    const requestId = `${activeTab}-${debouncedSearchQuery}`;
+    const requestId = `${activeTab}-${debouncedSearchQuery}-${JSON.stringify(
+      appliedFilters
+    )}`;
 
     // Cancel previous request if it's still pending
     if (abortControllerRef.current) {
@@ -108,6 +113,105 @@ const AllTransactions = () => {
           params.search = debouncedSearchQuery.trim();
         }
 
+        // Add applied filters
+        if (appliedFilters.datePreset) {
+          if (appliedFilters.datePreset === "custom") {
+            if (appliedFilters.startDate) {
+              params.startDate = appliedFilters.startDate;
+            }
+            if (appliedFilters.endDate) {
+              params.endDate = appliedFilters.endDate;
+            }
+          } else {
+            // Handle preset date ranges
+            const now = new Date();
+            const today = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate()
+            );
+
+            if (appliedFilters.datePreset === "today") {
+              params.startDate = today;
+              params.endDate = new Date(
+                today.getTime() + 24 * 60 * 60 * 1000 - 1
+              );
+            } else if (appliedFilters.datePreset === "yesterday") {
+              const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+              params.startDate = yesterday;
+              params.endDate = new Date(
+                yesterday.getTime() + 24 * 60 * 60 * 1000 - 1
+              );
+            } else if (appliedFilters.datePreset === "thisWeek") {
+              // Start of week (Sunday)
+              const startOfWeek = new Date(today);
+              startOfWeek.setDate(today.getDate() - today.getDay());
+              // End of week (Saturday)
+              const endOfWeek = new Date(startOfWeek);
+              endOfWeek.setDate(startOfWeek.getDate() + 6);
+              endOfWeek.setHours(23, 59, 59, 999);
+              params.startDate = startOfWeek;
+              params.endDate = endOfWeek;
+            } else if (appliedFilters.datePreset === "lastWeek") {
+              // Start of last week (Sunday of previous week)
+              const startOfLastWeek = new Date(today);
+              startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+              // End of last week (Saturday of previous week)
+              const endOfLastWeek = new Date(startOfLastWeek);
+              endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+              endOfLastWeek.setHours(23, 59, 59, 999);
+              params.startDate = startOfLastWeek;
+              params.endDate = endOfLastWeek;
+            } else if (appliedFilters.datePreset === "thisMonth") {
+              const firstDayOfMonth = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                1
+              );
+              const lastDayOfMonth = new Date(
+                now.getFullYear(),
+                now.getMonth() + 1,
+                0,
+                23,
+                59,
+                59,
+                999
+              );
+              params.startDate = firstDayOfMonth;
+              params.endDate = lastDayOfMonth;
+            } else if (appliedFilters.datePreset === "lastMonth") {
+              const firstDayOfLastMonth = new Date(
+                now.getFullYear(),
+                now.getMonth() - 1,
+                1
+              );
+              const lastDayOfLastMonth = new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                0,
+                23,
+                59,
+                59,
+                999
+              );
+              params.startDate = firstDayOfLastMonth;
+              params.endDate = lastDayOfLastMonth;
+            }
+          }
+        }
+
+        if (appliedFilters.statuses && appliedFilters.statuses.length > 0) {
+          params.statuses = appliedFilters.statuses;
+        }
+
+        if (appliedFilters.categories && appliedFilters.categories.length > 0) {
+          params.categories = appliedFilters.categories.join(",");
+        }
+
+        if (appliedFilters.accounts && appliedFilters.accounts.length > 0) {
+          params.accounts = appliedFilters.accounts.join(",");
+        }
+
         // Call getTransactions with the params
         await getTransactions(params);
       } catch (error: any) {
@@ -132,7 +236,7 @@ const AllTransactions = () => {
         abortControllerRef.current.abort();
       }
     };
-  }, [activeTab, debouncedSearchQuery, getTransactions]);
+  }, [activeTab, debouncedSearchQuery, appliedFilters, getTransactions]);
 
   // Since we're now doing server-side filtering, use transactions directly
   const filteredTransactions = transactions;
@@ -177,6 +281,103 @@ const AllTransactions = () => {
     }
     if (debouncedSearchQuery.trim()) {
       params.search = debouncedSearchQuery.trim();
+    }
+
+    // Add applied filters
+    if (appliedFilters.datePreset) {
+      if (appliedFilters.datePreset === "custom") {
+        if (appliedFilters.startDate) {
+          params.startDate = appliedFilters.startDate;
+        }
+        if (appliedFilters.endDate) {
+          params.endDate = appliedFilters.endDate;
+        }
+      } else {
+        // Handle preset date ranges
+        const now = new Date();
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
+
+        if (appliedFilters.datePreset === "today") {
+          params.startDate = today;
+          params.endDate = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1);
+        } else if (appliedFilters.datePreset === "yesterday") {
+          const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+          params.startDate = yesterday;
+          params.endDate = new Date(
+            yesterday.getTime() + 24 * 60 * 60 * 1000 - 1
+          );
+        } else if (appliedFilters.datePreset === "thisWeek") {
+          // Start of week (Sunday)
+          const startOfWeek = new Date(today);
+          startOfWeek.setDate(today.getDate() - today.getDay());
+          // End of week (Saturday)
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
+          endOfWeek.setHours(23, 59, 59, 999);
+          params.startDate = startOfWeek;
+          params.endDate = endOfWeek;
+        } else if (appliedFilters.datePreset === "lastWeek") {
+          // Start of last week (Sunday of previous week)
+          const startOfLastWeek = new Date(today);
+          startOfLastWeek.setDate(today.getDate() - today.getDay() - 7);
+          // End of last week (Saturday of previous week)
+          const endOfLastWeek = new Date(startOfLastWeek);
+          endOfLastWeek.setDate(startOfLastWeek.getDate() + 6);
+          endOfLastWeek.setHours(23, 59, 59, 999);
+          params.startDate = startOfLastWeek;
+          params.endDate = endOfLastWeek;
+        } else if (appliedFilters.datePreset === "thisMonth") {
+          const firstDayOfMonth = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            1
+          );
+          const lastDayOfMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            0,
+            23,
+            59,
+            59,
+            999
+          );
+          params.startDate = firstDayOfMonth;
+          params.endDate = lastDayOfMonth;
+        } else if (appliedFilters.datePreset === "lastMonth") {
+          const firstDayOfLastMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() - 1,
+            1
+          );
+          const lastDayOfLastMonth = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            0,
+            23,
+            59,
+            59,
+            999
+          );
+          params.startDate = firstDayOfLastMonth;
+          params.endDate = lastDayOfLastMonth;
+        }
+      }
+    }
+
+    if (appliedFilters.statuses && appliedFilters.statuses.length > 0) {
+      params.statuses = appliedFilters.statuses;
+    }
+
+    if (appliedFilters.categories && appliedFilters.categories.length > 0) {
+      params.categories = appliedFilters.categories.join(",");
+    }
+
+    if (appliedFilters.accounts && appliedFilters.accounts.length > 0) {
+      params.accounts = appliedFilters.accounts.join(",");
     }
 
     loadMoreTransactions(params);
@@ -229,6 +430,7 @@ const AllTransactions = () => {
           onChangeText={setSearchQuery}
           isDark={isDark}
           showFilterButton
+          onFilterPress={() => setIsFilterVisible(true)}
         />
       </View>
 
@@ -446,6 +648,13 @@ const AllTransactions = () => {
       <FAB
         icon="plus"
         onPress={() => router.push("/screens/Transactions/addTransaction")}
+      />
+
+      <SimpleFilterBottomSheet
+        visible={isFilterVisible}
+        onClose={() => setIsFilterVisible(false)}
+        onApply={setAppliedFilters}
+        initialFilters={appliedFilters}
       />
     </View>
   );

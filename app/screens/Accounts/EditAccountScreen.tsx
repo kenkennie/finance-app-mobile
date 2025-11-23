@@ -3,6 +3,7 @@ import { LoadingIndicator } from "@/shared/components/ui/LoadingIndicator";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
+import { useTheme } from "@/theme/context/ThemeContext";
 import { useToastStore } from "@/store/toastStore";
 import { UpdateAccountDto } from "@/schemas/account.schema";
 import { useAccountStore } from "@/store/accountStore";
@@ -12,6 +13,7 @@ import { Account } from "@/shared/types/account.types";
 const EditAccountScreen = ({}) => {
   const { showSuccess, showError } = useToastStore();
   const router = useRouter();
+  const { isDark } = useTheme();
   const { accountId } = useLocalSearchParams<{ accountId: string }>();
   const {
     updateAccount,
@@ -66,11 +68,12 @@ const EditAccountScreen = ({}) => {
 
   if (loadingAccount || !account) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, isDark && styles.containerDark]}>
         <Header
           title="Edit Account"
           showBack
           onBackPress={() => router.back()}
+          isDark={isDark}
         />
         <LoadingIndicator
           size="large"
@@ -82,11 +85,12 @@ const EditAccountScreen = ({}) => {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <Header
         title="Edit Account"
         showBack
         onBackPress={() => router.back()}
+        isDark={isDark}
       />
 
       <AccountForm
@@ -104,6 +108,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F9FAFB",
+  },
+  containerDark: {
+    backgroundColor: "#000",
   },
   loadingContainer: {
     flex: 1,

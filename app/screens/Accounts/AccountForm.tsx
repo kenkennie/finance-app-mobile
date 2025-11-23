@@ -210,7 +210,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
             >
               Customization
             </Typography>
-            <Card>
+            <Card isDark={isDark}>
               <IconColorSelector
                 label="Color"
                 color={selectedColor || "#1976D2"}
@@ -238,7 +238,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
             >
               Settings
             </Typography>
-            <Card>
+            <Card isDark={isDark}>
               <Controller
                 control={control}
                 name="isSystemAccount"
@@ -402,7 +402,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
           >
             Customization
           </Typography>
-          <Card>
+          <Card isDark={isDark}>
             <IconColorSelector
               label="Color"
               color={selectedColor || "#1976D2"}
@@ -430,7 +430,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
           >
             Settings
           </Typography>
-          <Card>
+          <Card isDark={isDark}>
             <Controller
               control={control}
               name="isActive"

@@ -107,7 +107,10 @@ const SubcategoryManager: React.FC<SubcategoryManagerProps> = ({
 
       {/* Add Subcategory Form */}
       {showAddForm && (
-        <Card style={styles.addForm}>
+        <Card
+          isDark={isDark}
+          style={styles.addForm}
+        >
           <Input
             label="Subcategory Name"
             placeholder="e.g., Groceries, Dining Out"
@@ -142,7 +145,10 @@ const SubcategoryManager: React.FC<SubcategoryManagerProps> = ({
 
       {/* Subcategories List */}
       {subcategories.length > 0 && (
-        <Card style={styles.subcategoriesList}>
+        <Card
+          isDark={isDark}
+          style={styles.subcategoriesList}
+        >
           {subcategories.map((subcategory, index) => (
             <View
               key={subcategory.id || index}
@@ -195,7 +201,10 @@ const SubcategoryManager: React.FC<SubcategoryManagerProps> = ({
       )}
 
       {subcategories.length === 0 && !showAddForm && (
-        <Card style={styles.emptyState}>
+        <Card
+          isDark={isDark}
+          style={styles.emptyState}
+        >
           <Typography
             style={[styles.emptyText, isDark && styles.emptyTextDark]}
           >
