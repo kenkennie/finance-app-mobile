@@ -27,7 +27,6 @@ import {
   UpdateTransactionSchema,
   CreateTransactionDto,
   UpdateTransactionDto,
-  TransactionItemDto,
 } from "@/schemas/transaction.schema";
 import { Transaction } from "@/shared/types/filter.types";
 

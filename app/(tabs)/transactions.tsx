@@ -2,7 +2,6 @@ import {
   View,
   StyleSheet,
   useColorScheme,
-  ScrollView,
   ActivityIndicator,
   FlatList,
 } from "react-native";
@@ -17,7 +16,6 @@ import { TransactionCard } from "../screens/Transactions/TransactionCard";
 import { TabBar } from "@/shared/components/ui/TabBar";
 import { Card } from "@/shared/components/ui/Card";
 import SimpleFilterBottomSheet from "@/shared/components/ui/filters/simpleFilterBottomSheet";
-import { tr } from "zod/v4/locales";
 import { Transaction } from "@/shared/types/filter.types";
 
 interface HeaderItem {
