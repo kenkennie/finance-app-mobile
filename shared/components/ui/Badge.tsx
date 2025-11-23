@@ -28,7 +28,6 @@ export const Badge: React.FC<BadgeProps> = ({
 }) => {
   return (
     <View style={[styles.badge, styles[variant], styles[size], style]}>
-      {" "}
       <Typography
         variant="caption"
         weight="semibold"

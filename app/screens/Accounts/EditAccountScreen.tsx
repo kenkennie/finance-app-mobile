@@ -1,4 +1,5 @@
 import { Header } from "@/shared/components/ui/Header";
+import { LoadingIndicator } from "@/shared/components/ui/LoadingIndicator";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
@@ -53,7 +54,6 @@ const EditAccountScreen = ({}) => {
       const updatedAccount = await updateAccount(accountId, data);
       setAccount(updatedAccount);
       showSuccess(successMessage || "Account updated successfully!");
-
       setTimeout(() => {
         router.replace(
           `/screens/Accounts/AccountDetails?accountId=${accountId}` as any
@@ -72,9 +72,11 @@ const EditAccountScreen = ({}) => {
           showBack
           onBackPress={() => router.back()}
         />
-        <View style={styles.loadingContainer}>
-          {/* Could add a loading indicator here */}
-        </View>
+        <LoadingIndicator
+          size="large"
+          message="Loading account..."
+          style={styles.loadingContainer}
+        />
       </View>
     );
   }

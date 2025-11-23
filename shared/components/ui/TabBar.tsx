@@ -1,23 +1,28 @@
 import React from "react";
 import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
 
+interface Tab {
+  id: string;
+  label: string;
+}
+
 interface TabBarProps {
+  tabs?: Tab[];
   activeTab: string;
   onTabChange?: (tabId: string) => void;
   isDark?: boolean;
 }
 
 export const TabBar: React.FC<TabBarProps> = ({
+  tabs = [
+    { id: "all", label: "All" },
+    { id: "income", label: "Income" },
+    { id: "expenses", label: "Expenses" },
+  ],
   activeTab,
   onTabChange,
   isDark,
 }) => {
-  const tabs = [
-    { id: "all", label: "All" },
-    { id: "income", label: "Income" },
-    { id: "expenses", label: "Expenses" },
-  ];
-
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       {tabs.map((tab) => (

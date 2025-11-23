@@ -3,8 +3,14 @@ import { z } from "zod";
 // --- Zod Schema for Runtime Validation ---
 
 export const CreateAccountSchema = z.object({
-  accountName: z.string().min(1).max(100),
-  accountNumber: z.string().min(5).max(100),
+  accountName: z
+    .string()
+    .min(2, "Account name is required")
+    .max(100, "Account name must not exceed 100 characters"),
+  accountNumber: z
+    .string()
+    .min(5, "Account number must be minimum of 5 characters")
+    .max(100, "Account name must not exceed 100 characters"),
   icon: z.string().default("credit-card"),
   color: z
     .string()
@@ -20,8 +26,16 @@ export const CreateAccountSchema = z.object({
 export type CreateAccountDto = z.infer<typeof CreateAccountSchema>;
 
 export const UpdateAccountSchema = z.object({
-  accountName: z.string().min(1).max(100).optional(),
-  accountNumber: z.string().min(5).max(100).optional(),
+  accountName: z
+    .string()
+    .min(2, "Account name is required")
+    .max(100, "Account name must not exceed 100 characters")
+    .optional(),
+  accountNumber: z
+    .string()
+    .min(5, "Account number must be minimum of 5 characters")
+    .max(100, "Account number must not exceed 100 characters")
+    .optional(),
   icon: z.string().optional(),
   color: z
     .string()

@@ -1,3 +1,5 @@
+import { TransactionItem } from "./transaction.types";
+
 export interface FilterState {
   dateRange: {
     preset:
@@ -40,17 +42,15 @@ export interface FilterState {
 
 export interface Transaction {
   id: string;
-  type: "expense" | "income";
-  amount: number;
+  transactionType: "EXPENSE" | "INCOME";
+  title: string;
   description: string;
-  category: string;
-  categoryIcon: string;
-  categoryId: string;
-  account: string;
-  accountId: string;
   date: string;
-  status: "pending" | "cleared" | "reconciled";
-  tags?: string[];
-  notes?: string;
-  isRecurring?: boolean;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  status: "CLEARED" | "PENDING" | "RECONCILED";
+  TransactionItems?: TransactionItem[];
+  totalAmount?: number;
+  formattedAmount?: string;
 }

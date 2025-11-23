@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/authStore";
 import { useToastStore } from "@/store/toastStore";
@@ -50,29 +51,31 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: "slide_from_right",
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <SafeAreaProvider>
+          <QueryClientProvider client={queryClient}>
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                animation: "slide_from_right",
+              }}
+            >
+              <Stack.Screen name="index" />
+              <Stack.Screen name="(auth)" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
 
-          {/* Global Toast Component */}
-          <Toast
-            visible={visible}
-            message={message}
-            type={type}
-            onHide={hideToast}
-          />
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </ThemeProvider>
+            {/* Global Toast Component */}
+            <Toast
+              visible={visible}
+              message={message}
+              type={type}
+              onHide={hideToast}
+            />
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -11,7 +11,6 @@ import { Header } from "@/shared/components/ui/Header";
 import { UserProfileCard } from "@/shared/components/ui/UserProfileCard";
 import { MenuItem } from "@/shared/components/ui/MenuItem";
 import { useAuthStore } from "@/store/authStore";
-import { useAccountStore } from "@/store/accountStore";
 import { useToastStore } from "@/store/toastStore";
 
 const ProfileScreen = () => {
@@ -87,7 +86,7 @@ const ProfileScreen = () => {
           <MenuItem
             icon="tag"
             title="Categories"
-            onPress={() => console.log("Categories")}
+            onPress={() => router.push("/screens/Categories/AllCategories")}
             isDark={isDark}
           />
           <MenuItem

@@ -1,29 +1,37 @@
 import { colors } from "@/theme/colors";
 import { fontSize } from "@/theme/spacing";
 import { Tabs } from "expo-router";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Home,
   DollarSign,
   Target,
   User,
-  WorkflowIcon,
+  TrendingUp,
+  BarChart,
 } from "lucide-react-native";
+import { useTheme } from "@/theme/context/ThemeContext";
 
 export default function TabsLayout() {
+  const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray[400],
+        tabBarActiveTintColor: isDark ? "#3385FF" : colors.primary,
+        tabBarInactiveTintColor: isDark ? "#94a3b8" : colors.gray[400],
         tabBarStyle: {
+          position: "absolute",
+          bottom: 0,
           borderTopWidth: 1,
-          borderTopColor: colors.border,
-          paddingTop: 2,
-          paddingBottom: Platform.OS === "ios" ? 20 : 8,
-          height: Platform.OS === "ios" ? 88 : 60,
-          backgroundColor: colors.background,
+          borderTopColor: isDark ? "#2C2C2E" : colors.border,
+          paddingTop: 8,
+          paddingBottom: insets.bottom + (Platform.OS === "ios" ? 25 : 12),
+          height: (Platform.OS === "ios" ? 100 : 82) + insets.bottom,
+          backgroundColor: isDark ? "#1C1C1E" : colors.background,
           elevation: 8,
           shadowColor: "#000",
           shadowOffset: { width: 0, height: -2 },
@@ -36,7 +44,7 @@ export default function TabsLayout() {
           marginTop: 0,
         },
         tabBarIconStyle: {
-          marginTop: 4,
+          marginTop: 6,
         },
       }}
     >
@@ -46,6 +54,18 @@ export default function TabsLayout() {
           title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Home
+              color={color}
+              size={size || 24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          title: "Transactions",
+          tabBarIcon: ({ color, size }) => (
+            <DollarSign
               color={color}
               size={size || 24}
             />
@@ -69,19 +89,20 @@ export default function TabsLayout() {
         options={{
           title: "Goals",
           tabBarIcon: ({ color, size }) => (
-            <WorkflowIcon
+            <TrendingUp
               color={color}
               size={size || 24}
             />
           ),
         }}
       />
+
       <Tabs.Screen
-        name="transactions"
+        name="reports"
         options={{
-          title: "Transactions",
+          title: "Reports",
           tabBarIcon: ({ color, size }) => (
-            <WorkflowIcon
+            <BarChart
               color={color}
               size={size || 24}
             />

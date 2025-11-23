@@ -1,6 +1,7 @@
 import React from "react";
-import { TouchableOpacity, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface FABProps {
   icon: "plus";
@@ -15,9 +16,14 @@ export const FAB: React.FC<FABProps> = ({
   color = "#2563EB",
   isDark,
 }) => {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = (Platform.OS === "ios" ? 100 : 82) + insets.bottom;
   return (
     <TouchableOpacity
-      style={[styles.fab, { backgroundColor: color }]}
+      style={[
+        styles.fab,
+        { backgroundColor: color, bottom: tabBarHeight + 20 },
+      ]}
       onPress={onPress}
       activeOpacity={0.8}
     >

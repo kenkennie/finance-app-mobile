@@ -12,40 +12,36 @@ import { Header } from "@/shared/components/ui/Header";
 import { Typography } from "@/shared/components/ui/Typography";
 import { Card } from "@/shared/components/ui/Card";
 import { Button } from "@/shared/components/ui/Button";
-import { useAccountStore } from "@/store/accountStore";
-import { Account } from "@/shared/types/account.types";
+import { useCategoryStore } from "@/store/categoryStore";
+import { Category } from "@/shared/types/category.types";
 
-const AccountDetailsScreen = () => {
+const CategoryDetailsScreen = () => {
   const router = useRouter();
-  const { accountId } = useLocalSearchParams<{ accountId: string }>();
-  const { getAccountById, deleteAccount, isLoading } = useAccountStore();
+  const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
+  const { getCategoryById, deleteCategory, isLoading } = useCategoryStore();
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const [account, setAccount] = useState<Account | null>(null);
-  const [loadingAccount, setLoadingAccount] = useState(true);
+  const [category, setCategory] = useState<Category | null>(null);
+  const [loadingCategory, setLoadingCategory] = useState(true);
 
   useEffect(() => {
-    loadAccount();
-  }, [accountId]);
+    loadCategory();
+  }, [categoryId]);
 
-  const loadAccount = async () => {
-    if (!accountId) return;
+  const loadCategory = async () => {
+    if (!categoryId) return;
 
     try {
-      setLoadingAccount(true);
-      const accountData = await getAccountById(accountId);
-      setAccount(accountData);
+      setLoadingCategory(true);
+      const categoryData = await getCategoryById(categoryId);
+      setCategory(categoryData);
     } catch (error) {
-      console.error("Error loading account:", error);
+      console.error("Error loading category:", error);
     } finally {
-      setLoadingAccount(false);
+      setLoadingCategory(false);
     }
-  };
-
-  const formatCurrency = (amount: number): string => {
-    return `KSh ${amount.toLocaleString()}`;
   };
 
   const formatDate = (dateString: string): string => {
@@ -56,20 +52,20 @@ const AccountDetailsScreen = () => {
     });
   };
 
-  const handleEditAccount = () => {
-    if (account) {
+  const handleEditCategory = () => {
+    if (category) {
       router.replace(
-        `/screens/Accounts/EditAccountScreen?accountId=${account.id}` as any
+        `/screens/Categories/EditCategory?categoryId=${category.id}` as any
       );
     }
   };
 
-  const handleDeleteAccount = () => {
-    if (!account) return;
+  const handleDeleteCategory = () => {
+    if (!category) return;
 
     Alert.alert(
-      "Delete Account",
-      `Are you sure you want to delete "${account.accountName}"? This action cannot be undone.`,
+      "Delete Category",
+      `Are you sure you want to delete "${category.name}"? This action cannot be undone.`,
       [
         {
           text: "Cancel",
@@ -80,10 +76,10 @@ const AccountDetailsScreen = () => {
           style: "destructive",
           onPress: async () => {
             try {
-              await deleteAccount(account.id);
+              await deleteCategory(category.id);
               router.back();
             } catch (error: any) {
-              Alert.alert("Error", "Failed to delete account");
+              Alert.alert("Error", "Failed to delete category");
             }
           },
         },
@@ -91,11 +87,11 @@ const AccountDetailsScreen = () => {
     );
   };
 
-  if (loadingAccount) {
+  if (loadingCategory) {
     return (
       <View style={[styles.container, isDark && styles.containerDark]}>
         <Header
-          title="Account Details"
+          title="Category Details"
           showBack
           onBackPress={() => router.back()}
           isDark={isDark}
@@ -104,18 +100,18 @@ const AccountDetailsScreen = () => {
           <Typography
             style={[styles.loadingText, isDark ? styles.loadingTextDark : {}]}
           >
-            Loading account details...
+            Loading category details...
           </Typography>
         </View>
       </View>
     );
   }
 
-  if (!account) {
+  if (!category) {
     return (
       <View style={[styles.container, isDark && styles.containerDark]}>
         <Header
-          title="Account Details"
+          title="Category Details"
           showBack
           onBackPress={() => router.back()}
           isDark={isDark}
@@ -124,7 +120,7 @@ const AccountDetailsScreen = () => {
           <Typography
             style={[styles.errorText, isDark ? styles.errorTextDark : {}]}
           >
-            Account not found
+            Category not found
           </Typography>
         </View>
       </View>
@@ -134,14 +130,14 @@ const AccountDetailsScreen = () => {
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       <Header
-        title="Account Details"
+        title="Category Details"
         showBack
         onBackPress={() => router.back()}
         isDark={isDark}
         rightIcons={[
           {
             icon: "edit-3",
-            onPress: handleEditAccount,
+            onPress: handleEditCategory,
           },
         ]}
       />
@@ -150,66 +146,111 @@ const AccountDetailsScreen = () => {
         style={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Account Header Card */}
+        {/* Category Header Card */}
         <Card
           isDark={isDark}
           style={styles.headerCard}
         >
-          <View style={styles.accountHeader}>
+          <View style={styles.categoryHeader}>
             <View
               style={[
-                styles.accountIcon,
-                { backgroundColor: account.color + "20" },
+                styles.categoryIcon,
+                { backgroundColor: category.color + "20" },
               ]}
             >
               <Feather
-                name={account.icon as any}
+                name={category.icon as any}
                 size={32}
-                color={account.color}
+                color={category.color}
               />
             </View>
-            <View style={styles.accountInfo}>
+            <View style={styles.categoryInfo}>
               <Typography
                 variant="h2"
                 style={[
-                  styles.accountName,
-                  isDark ? styles.accountNameDark : {},
+                  styles.categoryName,
+                  isDark ? styles.categoryNameDark : {},
                 ]}
               >
-                {account.accountName}
+                {category.name}
               </Typography>
-              {account.accountNumber && (
-                <Typography
-                  style={[
-                    styles.accountNumber,
-                    isDark ? styles.accountNumberDark : {},
-                  ]}
-                >
-                  {account.accountNumber || "N/A"}
-                </Typography>
-              )}
+              <Typography
+                style={[
+                  styles.transactionType,
+                  isDark ? styles.transactionTypeDark : {},
+                ]}
+              >
+                {category.transactionType}
+              </Typography>
             </View>
           </View>
 
-          <View style={styles.balanceSection}>
-            <Typography
-              style={[
-                styles.balanceLabel,
-                isDark ? styles.balanceLabelDark : {},
-              ]}
-            >
-              Current Balance
-            </Typography>
-            <Typography
-              variant="h1"
-              style={[styles.balance, isDark ? styles.balanceDark : {}]}
-            >
-              {formatCurrency(account.balance)}
-            </Typography>
-          </View>
+          {category.description && (
+            <View style={styles.descriptionSection}>
+              <Typography
+                style={[
+                  styles.description,
+                  isDark ? styles.descriptionDark : {},
+                ]}
+              >
+                {category.description}
+              </Typography>
+            </View>
+          )}
         </Card>
 
-        {/* Account Information */}
+        {/* Subcategories */}
+        {category.children && category.children.length > 0 && (
+          <Card
+            isDark={isDark}
+            style={styles.subcategoriesCard}
+          >
+            <Typography
+              variant="h3"
+              style={[
+                styles.sectionTitle,
+                isDark ? styles.sectionTitleDark : {},
+              ]}
+            >
+              Subcategories
+            </Typography>
+
+            {category.children.map((subcategory, index) => (
+              <View
+                key={subcategory.id}
+                style={styles.subcategoryRow}
+              >
+                <View style={styles.subcategoryIcon}>
+                  <Feather
+                    name={subcategory.icon as any}
+                    size={20}
+                    color={category.color}
+                  />
+                </View>
+                <Typography
+                  style={[
+                    styles.subcategoryName,
+                    isDark ? styles.subcategoryNameDark : {},
+                  ]}
+                >
+                  {subcategory.name}
+                </Typography>
+                {subcategory.description && (
+                  <Typography
+                    style={[
+                      styles.subcategoryDescription,
+                      isDark ? styles.subcategoryDescriptionDark : {},
+                    ]}
+                  >
+                    {subcategory.description}
+                  </Typography>
+                )}
+              </View>
+            ))}
+          </Card>
+        )}
+
+        {/* Category Information */}
         <Card
           isDark={isDark}
           style={styles.infoCard}
@@ -218,19 +259,19 @@ const AccountDetailsScreen = () => {
             variant="h3"
             style={[styles.sectionTitle, isDark ? styles.sectionTitleDark : {}]}
           >
-            Account Information
+            Category Information
           </Typography>
 
           <View style={styles.infoRow}>
             <Typography
               style={[styles.infoLabel, isDark ? styles.infoLabelDark : {}]}
             >
-              Description
+              Transaction Type
             </Typography>
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {account.description}
+              {category.transactionType}
             </Typography>
           </View>
 
@@ -238,12 +279,12 @@ const AccountDetailsScreen = () => {
             <Typography
               style={[styles.infoLabel, isDark ? styles.infoLabelDark : {}]}
             >
-              Currency
+              Order Index
             </Typography>
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {account.currency}
+              {category.orderIndex}
             </Typography>
           </View>
 
@@ -257,13 +298,15 @@ const AccountDetailsScreen = () => {
               <View
                 style={[
                   styles.statusDot,
-                  { backgroundColor: account.isActive ? "#10B981" : "#EF4444" },
+                  {
+                    backgroundColor: category.isActive ? "#10B981" : "#EF4444",
+                  },
                 ]}
               />
               <Typography
                 style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
               >
-                {account.isActive ? "Active" : "Inactive"}
+                {category.isActive ? "Active" : "Inactive"}
               </Typography>
             </View>
           </View>
@@ -277,7 +320,7 @@ const AccountDetailsScreen = () => {
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {formatDate(account.createdAt)}
+              {formatDate(category.createdAt)}
             </Typography>
           </View>
 
@@ -290,7 +333,7 @@ const AccountDetailsScreen = () => {
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {formatDate(account.updatedAt)}
+              {formatDate(category.updatedAt)}
             </Typography>
           </View>
         </Card>
@@ -298,21 +341,21 @@ const AccountDetailsScreen = () => {
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Button
-            onPress={handleEditAccount}
+            onPress={handleEditCategory}
             variant="primary"
             style={styles.editButton}
           >
-            Edit Account
+            Edit Category
           </Button>
 
-          {!account.isSystem && (
+          {!category.isSystem && (
             <Button
-              onPress={handleDeleteAccount}
+              onPress={handleDeleteCategory}
               variant="danger"
               style={styles.deleteButton}
               disabled={isLoading}
             >
-              Delete Account
+              Delete Category
             </Button>
           )}
         </View>
@@ -361,12 +404,12 @@ const styles = StyleSheet.create({
   headerCard: {
     marginBottom: 16,
   },
-  accountHeader: {
+  categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 16,
   },
-  accountIcon: {
+  categoryIcon: {
     width: 64,
     height: 64,
     borderRadius: 20,
@@ -374,46 +417,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 16,
   },
-  accountInfo: {
+  categoryInfo: {
     flex: 1,
   },
-  accountName: {
+  categoryName: {
     fontSize: 24,
     fontWeight: "700",
     color: "#111827",
     marginBottom: 4,
   },
-  accountNameDark: {
+  categoryNameDark: {
     color: "#FFF",
   },
-  accountNumber: {
+  transactionType: {
     fontSize: 16,
     color: "#6B7280",
+    textTransform: "capitalize",
   },
-  accountNumberDark: {
+  transactionTypeDark: {
     color: "#9CA3AF",
   },
-  balanceSection: {
-    alignItems: "center",
+  descriptionSection: {
+    marginTop: 16,
   },
-  balanceLabel: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginBottom: 8,
+  description: {
+    fontSize: 16,
+    color: "#374151",
+    lineHeight: 24,
   },
-  balanceLabelDark: {
-    color: "#9CA3AF",
+  descriptionDark: {
+    color: "#D1D5DB",
   },
-  balance: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#111827",
-  },
-  balanceDark: {
-    color: "#FFF",
-  },
-  infoCard: {
-    marginBottom: 24,
+  subcategoriesCard: {
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,
@@ -423,6 +459,42 @@ const styles = StyleSheet.create({
   },
   sectionTitleDark: {
     color: "#FFF",
+  },
+  subcategoryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+  },
+  subcategoryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    backgroundColor: "#F3F4F6",
+  },
+  subcategoryName: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#111827",
+    flex: 1,
+  },
+  subcategoryNameDark: {
+    color: "#FFF",
+  },
+  subcategoryDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  subcategoryDescriptionDark: {
+    color: "#9CA3AF",
+  },
+  infoCard: {
+    marginBottom: 24,
   },
   infoRow: {
     flexDirection: "row",
@@ -473,4 +545,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AccountDetailsScreen;
+export default CategoryDetailsScreen;

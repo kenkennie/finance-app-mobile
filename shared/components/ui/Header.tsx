@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type FeatherIconName = React.ComponentProps<typeof Feather>["name"];
 
@@ -29,8 +30,16 @@ export const Header: React.FC<HeaderProps> = ({
   rightIcons = [],
   isDark = false,
 }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={[styles.header, isDark && styles.headerDark]}>
+    <View
+      style={[
+        styles.header,
+        isDark && styles.headerDark,
+        { paddingTop: insets.top + 16 },
+      ]}
+    >
       {/* Left Side */}
       <View style={styles.leftContainer}>
         {showBack && (
@@ -88,7 +97,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 60,
     paddingBottom: 16,
     backgroundColor: "#FFF",
     borderBottomWidth: 1,

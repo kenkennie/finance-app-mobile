@@ -1,6 +1,18 @@
 import { colors } from "@/theme/colors";
 import { borderRadius, fontSize, spacing } from "@/theme/spacing";
-import { Eye, EyeOff, LucideIcon } from "lucide-react-native";
+import {
+  Eye,
+  EyeOff,
+  Search,
+  LucideIcon,
+  Calendar,
+  DollarSign,
+  Tag,
+  CheckCircle,
+  Circle,
+  X,
+  Filter,
+} from "lucide-react-native";
 import React, { useState } from "react";
 import {
   View,
@@ -26,6 +38,29 @@ interface InputProps extends TextInputProps {
   containerStyle?: ViewStyle | ViewStyle[];
 }
 
+const getIconComponent = (iconName: string) => {
+  switch (iconName) {
+    case "search":
+      return Search;
+    case "calendar":
+      return Calendar;
+    case "dollar":
+      return DollarSign;
+    case "tag":
+      return Tag;
+    case "check":
+      return CheckCircle;
+    case "circle":
+      return Circle;
+    case "x":
+      return X;
+    case "filter":
+      return Filter;
+    default:
+      return null;
+  }
+};
+
 export const Input: React.FC<InputProps> = ({
   label,
   error,
@@ -43,6 +78,9 @@ export const Input: React.FC<InputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const isSecure = showPasswordToggle ? !isPasswordVisible : secureTextEntry;
 
+  const LeftIconComponent = leftIcon ? getIconComponent(leftIcon) : null;
+  const RightIconComponent = rightIcon ? getIconComponent(rightIcon) : null;
+
   return (
     <View style={[styles.container, containerStyle]}>
       {label && (
@@ -57,20 +95,11 @@ export const Input: React.FC<InputProps> = ({
           error && styles.inputContainerError,
         ]}
       >
-        {leftIcon && (
+        {leftIcon && LeftIconComponent && (
           <View style={styles.leftIcon}>
-            {/* Icon placeholder - replace with actual icon component based on leftIcon prop */}
-            <View
-              style={{
-                width: 20,
-                height: 20,
-                backgroundColor: error
-                  ? "#EF4444"
-                  : isDark
-                  ? "#9CA3AF"
-                  : "#6B7280",
-                borderRadius: 2,
-              }}
+            <LeftIconComponent
+              size={20}
+              color={error ? "#EF4444" : isDark ? "#9CA3AF" : "#6B7280"}
             />
           </View>
         )}
@@ -109,21 +138,16 @@ export const Input: React.FC<InputProps> = ({
             )}
           </TouchableOpacity>
         )}
-        {rightIcon && !showPasswordToggle && (
+        {rightIcon && !showPasswordToggle && RightIconComponent && (
           <TouchableOpacity
             style={styles.rightIcon}
             onPress={onRightIconPress}
             activeOpacity={0.7}
             disabled={!onRightIconPress}
           >
-            {/* Icon placeholder - replace with actual icon component based on rightIcon prop */}
-            <View
-              style={{
-                width: 20,
-                height: 20,
-                backgroundColor: isDark ? "#9CA3AF" : "#6B7280",
-                borderRadius: 2,
-              }}
+            <RightIconComponent
+              size={20}
+              color={isDark ? "#9CA3AF" : "#6B7280"}
             />
           </TouchableOpacity>
         )}

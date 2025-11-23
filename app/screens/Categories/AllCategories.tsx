@@ -2,7 +2,6 @@ import {
   View,
   StyleSheet,
   useColorScheme,
-  ScrollView,
   ActivityIndicator,
   FlatList,
 } from "react-native";
@@ -13,11 +12,10 @@ import { useRouter } from "expo-router";
 import { SearchBar } from "@/shared/components/ui/SearchBar";
 import { useTransactionStore } from "@/store/transactionStore";
 import { Typography } from "@/shared/components/ui/Typography";
-import { TransactionCard } from "../screens/Transactions/TransactionCard";
 import { TabBar } from "@/shared/components/ui/TabBar";
 import { Card } from "@/shared/components/ui/Card";
-import { tr } from "zod/v4/locales";
 import { Transaction } from "@/shared/types/filter.types";
+import { TransactionCard } from "../Transactions/TransactionCard";
 
 interface HeaderItem {
   type: "header";
@@ -76,6 +74,9 @@ const AllTransactions = () => {
 
   // Fetch transactions when filters change
   useEffect(() => {
+    // Reset pagination when filters change
+    // Note: We'll implement resetPagination in store if needed
+
     // Create request identifier for deduplication
     const requestId = `${activeTab}-${debouncedSearchQuery}`;
 
@@ -94,7 +95,7 @@ const AllTransactions = () => {
 
     const fetchTransactions = async () => {
       try {
-        const params: any = {};
+        const params: any = { page: 1, limit: 20 }; // Start with page 1, smaller limit for infinite scroll
 
         // Add type filter
         if (activeTab === "income") {
@@ -142,10 +143,9 @@ const AllTransactions = () => {
     totalIncome: 0,
     totalExpenses: 0,
     netAmount: 0,
-    formattedTotalIncome: "$0.00",
-    formattedTotalExpenses: "$0.00",
-    formattedNetAmount: "$0.00",
   };
+
+  const netAmount = displaySummary.totalIncome - displaySummary.totalExpenses;
 
   // Group transactions by date
   const groupedTransactions = filteredTransactions.reduce(
@@ -311,8 +311,7 @@ const AllTransactions = () => {
                     variant="h2"
                     style={[styles.summaryValue, styles.incomeValue]}
                   >
-                    {(displaySummary as any).formattedTotalIncome ||
-                      `$${displaySummary.totalIncome}`}
+                    +${displaySummary.totalIncome.toFixed(2)}
                   </Typography>
                 </View>
 
@@ -330,8 +329,7 @@ const AllTransactions = () => {
                     variant="h2"
                     style={[styles.summaryValue, styles.expenseValue]}
                   >
-                    {(displaySummary as any).formattedTotalExpenses ||
-                      `$${displaySummary.totalExpenses}`}
+                    -${displaySummary.totalExpenses.toFixed(2)}
                   </Typography>
                 </View>
 
@@ -349,15 +347,10 @@ const AllTransactions = () => {
                     variant="h2"
                     style={[
                       styles.summaryValue,
-                      displaySummary.netAmount >= 0
-                        ? styles.netPositive
-                        : styles.netNegative,
+                      netAmount >= 0 ? styles.netPositive : styles.netNegative,
                     ]}
                   >
-                    {(displaySummary as any).formattedNetAmount ||
-                      `${displaySummary.netAmount >= 0 ? "+" : ""}$${
-                        displaySummary.netAmount
-                      }`}
+                    {netAmount >= 0 ? "+" : ""}${netAmount.toFixed(2)}
                   </Typography>
                 </View>
               </View>
