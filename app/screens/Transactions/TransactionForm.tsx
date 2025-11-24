@@ -17,11 +17,13 @@ import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
 import { Typography } from "@/shared/components/ui/Typography";
 import { useTheme } from "@/theme/context/ThemeContext";
+import { useRouter } from "expo-router";
 import TransactionTypeSelector from "@/shared/components/ui/TransactionTypeSelector";
 import DatePicker from "@/shared/components/ui/pickers/DatePicker";
 import SearchableDropdown from "@/shared/components/ui/SearchableDropdown";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useAccountStore } from "@/store/accountStore";
+import { useTransactionStatusStore } from "@/store/transactionStatusStore";
 import {
   CreateTransactionSchema,
   UpdateTransactionSchema,
@@ -29,6 +31,26 @@ import {
   UpdateTransactionDto,
 } from "@/schemas/transaction.schema";
 import { Transaction } from "@/shared/types/filter.types";
+
+// Status selector component
+const StatusSelector: React.FC<{
+  value?: string;
+  onChange: (value: string) => void;
+  options: Array<{ id: string; label: string; icon: string; color: string }>;
+  error?: string;
+  isDark?: boolean;
+}> = ({ value, onChange, options, error, isDark = false }) => {
+  return (
+    <SearchableDropdown
+      options={options}
+      value={value}
+      onSelect={onChange}
+      placeholder="Select status"
+      label="Status"
+      error={error}
+    />
+  );
+};
 
 interface TransactionFormProps {
   mode: "create" | "edit";
@@ -48,11 +70,22 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   submitButtonText,
 }) => {
   const { isDark } = useTheme();
+  const router = useRouter();
   const { categories, getCategories } = useCategoryStore();
   const { accounts, getAccounts } = useAccountStore();
+  const { statuses: transactionStatuses, getStatuses } =
+    useTransactionStatusStore();
 
   // State to store removed items when switching transaction types
   const [removedItems, setRemovedItems] = useState<any[]>([]);
+
+  // State for account balances
+  const [accountBalances, setAccountBalances] = useState<
+    Record<string, number>
+  >({});
+  const [balanceLoading, setBalanceLoading] = useState<Record<string, boolean>>(
+    {}
+  );
 
   // Create mode form
   const createForm = useForm<CreateTransactionDto>({
@@ -61,7 +94,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       title: "",
       date: new Date(),
       description: "",
-      status: "CLEARED",
+      status: "Cleared" as string,
       notes: "",
       items: [
         {
@@ -82,9 +115,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       transactionType: initialData?.transactionType || "EXPENSE",
       date: initialData?.date ? new Date(initialData.date) : new Date(),
       description: initialData?.description || "",
-      status:
-        (initialData?.status as "PENDING" | "CLEARED" | "RECONCILED") ||
-        "CLEARED",
+      status: ((initialData?.status as any)?.name ||
+        (initialData?.status as string) ||
+        "Cleared") as "Pending" | "Cleared" | "Reconciled",
       notes: initialData?.notes || "",
       items:
         initialData?.TransactionItems?.map((item) => ({
@@ -95,6 +128,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         })) || [],
     },
   });
+
+  // Check if editing is allowed based on transaction status
+  const canEditTransaction =
+    (initialData?.status as any)?.name === "Pending" ||
+    (initialData?.status as string) === "Pending";
 
   // Field arrays for items
   const createItemsArray = useFieldArray({
@@ -140,11 +178,99 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   }, [selectedTransactionType, fields, remove, append, removedItems]);
 
-  // Load categories and accounts on mount
+  // Load categories, accounts, and statuses on mount
   useEffect(() => {
     getCategories();
     getAccounts();
+    getStatuses();
   }, []);
+
+  // Fetch account balances for existing transaction items when editing
+  useEffect(() => {
+    if (mode === "edit" && initialData?.TransactionItems) {
+      initialData.TransactionItems.forEach((item) => {
+        if (item.accountId) {
+          fetchAccountBalance(item.accountId);
+        }
+      });
+    }
+  }, [mode, initialData]);
+
+  // Prepare status options
+  const statusOptions = (transactionStatuses || []).map((status) => ({
+    id: status.name,
+    label: status.name,
+    icon: status.icon,
+    color: status.color,
+  }));
+
+  // Function to fetch account balance
+  const fetchAccountBalance = async (accountId: string) => {
+    if (!accountId || balanceLoading[accountId]) return;
+
+    try {
+      setBalanceLoading((prev) => ({ ...prev, [accountId]: true }));
+
+      // Find account from existing accounts list first
+      const account = accounts.find((acc) => acc.id === accountId);
+      if (account) {
+        setAccountBalances((prev) => ({
+          ...prev,
+          [accountId]: account.balance || 0,
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch account balance:", error);
+    } finally {
+      setBalanceLoading((prev) => ({ ...prev, [accountId]: false }));
+    }
+  };
+
+  // Function to calculate effective available balance for an account considering current transaction items
+  const getEffectiveBalance = (
+    accountId: string,
+    currentItemIndex?: number
+  ): number => {
+    const staticBalance = accountBalances[accountId] || 0;
+
+    // For expense transactions, subtract amounts of completed items using the same account
+    if (selectedTransactionType === "EXPENSE") {
+      const currentItems =
+        mode === "create" ? createForm.watch("items") : editForm.watch("items");
+      const completedItemsAmount = (currentItems || [])
+        .filter(
+          (item, index) =>
+            item.accountId === accountId &&
+            (currentItemIndex === undefined || index < currentItemIndex)
+        )
+        .reduce((sum, item) => sum + (item.amount || 0), 0);
+
+      return staticBalance - completedItemsAmount;
+    }
+
+    return staticBalance;
+  };
+
+  // Function to check if account has sufficient balance for expense
+  const hasSufficientBalance = (
+    accountId: string,
+    amount: number,
+    currentItemIndex?: number
+  ): boolean => {
+    const effectiveBalance = getEffectiveBalance(accountId, currentItemIndex);
+    return effectiveBalance >= amount;
+  };
+
+  // Function to get balance display text
+  const getBalanceText = (accountId: string, currentItemIndex?: number) => {
+    const balance = accountBalances[accountId];
+    if (balance === undefined) return null;
+
+    const effectiveBalance = getEffectiveBalance(accountId, currentItemIndex);
+    const account = accounts.find((acc) => acc.id === accountId);
+    const currency = account?.currency || "$";
+    return `${currency}${effectiveBalance}`;
+  };
 
   // Reset edit form when initialData changes
   useEffect(() => {
@@ -154,9 +280,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         transactionType: initialData.transactionType || "EXPENSE",
         date: initialData.date ? new Date(initialData.date) : new Date(),
         description: initialData.description || "",
-        status:
-          (initialData.status as "PENDING" | "CLEARED" | "RECONCILED") ||
-          "CLEARED",
+        status: ((initialData?.status as any)?.name ||
+          (initialData?.status as string) ||
+          "Cleared") as "Pending" | "Cleared" | "Reconciled",
         notes: initialData.notes || "",
         items:
           initialData.TransactionItems?.map((item) => ({
@@ -172,6 +298,24 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const handleFormSubmit = async (
     data: CreateTransactionDto | UpdateTransactionDto
   ) => {
+    // Validate balance for expense transactions
+    if (mode === "create" && data.transactionType === "EXPENSE" && data.items) {
+      for (let i = 0; i < data.items.length; i++) {
+        const item = data.items[i];
+        if (item.accountId && item.amount) {
+          if (!hasSufficientBalance(item.accountId, item.amount, i)) {
+            const account = accounts.find((acc) => acc.id === item.accountId);
+            const balanceText = getBalanceText(item.accountId, i);
+            throw new Error(
+              `Insufficient funds in ${
+                account?.accountName || "selected account"
+              }. Available: ${balanceText}`
+            );
+          }
+        }
+      }
+    }
+
     await onSubmit(data);
   };
 
@@ -257,6 +401,23 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   value={value}
                   onChange={onChange}
                   error={errors.transactionType?.message}
+                />
+              )}
+            />
+          </View>
+
+          {/* Status Selector */}
+          <View style={styles.section}>
+            <Controller
+              control={control}
+              name="status"
+              render={({ field: { onChange, value } }) => (
+                <StatusSelector
+                  value={value}
+                  onChange={onChange}
+                  options={statusOptions}
+                  error={errors.status?.message}
+                  isDark={isDark}
                 />
               )}
             />
@@ -383,50 +544,99 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                     control={control}
                     name={`items.${index}.accountId`}
                     render={({ field: { onChange, value } }) => (
-                      <SearchableDropdown
-                        options={accounts.map((account) => ({
-                          id: account.id,
-                          label: account.accountName,
-                          subtitle: account.accountNumber,
-                          icon: account.icon,
-                          color: account.color,
-                        }))}
-                        value={value}
-                        onSelect={onChange}
-                        placeholder="Select account"
-                        label="Account"
-                        error={errors.items?.[index]?.accountId?.message}
-                        addNewLabel="+ Add New Account"
-                        onAddNew={() => {
-                          Alert.alert(
-                            "Add Account",
-                            "Navigate to add account screen"
-                          );
-                        }}
-                      />
+                      <View>
+                        <SearchableDropdown
+                          options={accounts.map((account) => ({
+                            id: account.id,
+                            label: account.accountName,
+                            subtitle: account.accountNumber,
+                            icon: account.icon,
+                            color: account.color,
+                          }))}
+                          value={value}
+                          onSelect={(accountId) => {
+                            onChange(accountId);
+                            // Fetch balance when account is selected
+                            if (accountId) {
+                              fetchAccountBalance(accountId);
+                            }
+                          }}
+                          placeholder="Select account"
+                          label="Account"
+                          error={errors.items?.[index]?.accountId?.message}
+                          addNewLabel="+ Add New Account"
+                          onAddNew={() => {
+                            Alert.alert(
+                              "Add Account",
+                              "Navigate to add account screen"
+                            );
+                          }}
+                        />
+                        {/* Show account balance for expense transactions */}
+                        {selectedTransactionType === "EXPENSE" &&
+                          value &&
+                          getBalanceText(value) && (
+                            <View style={styles.balanceContainer}>
+                              <Typography
+                                style={[
+                                  styles.balanceText,
+                                  isDark && styles.balanceTextDark,
+                                ]}
+                              >
+                                Available Balance:{" "}
+                                {getBalanceText(value, index)}
+                              </Typography>
+                            </View>
+                          )}
+                      </View>
                     )}
                   />
 
                   <Controller
                     control={control}
                     name={`items.${index}.amount`}
-                    render={({ field: { onChange, onBlur, value } }) => (
-                      <Input
-                        label="Amount"
-                        placeholder="0.00"
-                        value={value?.toString() || ""}
-                        onChangeText={(text) => {
-                          const numValue = parseFloat(
-                            text.replace(/[^0-9.]/g, "")
-                          );
-                          onChange(isNaN(numValue) ? 0 : numValue);
-                        }}
-                        onBlur={onBlur}
-                        keyboardType="numeric"
-                        error={errors.items?.[index]?.amount?.message}
-                        isDark={isDark}
-                      />
-                    )}
+                    render={({ field: { onChange, onBlur, value } }) => {
+                      const accountId = watch(`items.${index}.accountId`);
+                      const hasInsufficientFunds =
+                        selectedTransactionType === "EXPENSE" &&
+                        accountId &&
+                        value &&
+                        !hasSufficientBalance(accountId, value, index);
+
+                      return (
+                        <View>
+                          <Input
+                            label="Amount"
+                            placeholder="0.00"
+                            value={value?.toString() || ""}
+                            onChangeText={(text) => {
+                              const numValue = parseFloat(
+                                text.replace(/[^0-9.]/g, "")
+                              );
+                              onChange(isNaN(numValue) ? 0 : numValue);
+                            }}
+                            onBlur={onBlur}
+                            keyboardType="numeric"
+                            error={errors.items?.[index]?.amount?.message}
+                            isDark={isDark}
+                          />
+                          {/* Insufficient funds warning */}
+                          {hasInsufficientFunds && (
+                            <View style={styles.insufficientFundsContainer}>
+                              <Typography
+                                style={[
+                                  styles.insufficientFundsText,
+                                  isDark && styles.insufficientFundsTextDark,
+                                ]}
+                              >
+                                ⚠️ Insufficient funds. Available:{" "}
+                                {getBalanceText(accountId, index)}
+                              </Typography>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    }}
                   />
 
                   <Controller
@@ -470,12 +680,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       isDark && styles.totalAmountDark,
                     ]}
                   >
-                    {fields
-                      .reduce((sum, field, index) => {
-                        const amount = watch(`items.${index}.amount`) || 0;
-                        return sum + (typeof amount === "number" ? amount : 0);
-                      }, 0)
-                      .toFixed(2)}{" "}
+                    {fields.reduce((sum, field, index) => {
+                      const amount = watch(`items.${index}.amount`) || 0;
+                      return sum + (typeof amount === "number" ? amount : 0);
+                    }, 0)}{" "}
                     {fields[0] && watch(`items.0.accountId`)
                       ? accounts.find(
                           (acc) => acc.id === watch(`items.0.accountId`)
@@ -540,6 +748,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     (cat) => cat.transactionType === selectedTransactionType
   );
 
+  // Filter categories based on transaction type (for edit mode)
+  const editFilteredCategories = categories.filter(
+    (cat) => cat.transactionType === selectedTransactionType
+  );
+
   const addButton =
     selectedTransactionType === "EXPENSE" ? (
       <TouchableOpacity
@@ -565,6 +778,96 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         </Typography>
       </TouchableOpacity>
     ) : null;
+
+  // If transaction is Reconciled, show read-only view
+  if (
+    (initialData?.status as any)?.name === "Reconciled" ||
+    (initialData?.status as string) === "Reconciled"
+  ) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={[styles.keyboardAvoid, isDark && styles.keyboardAvoidDark]}
+      >
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+        <ScrollView
+          style={[styles.content, isDark && styles.contentDark]}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.section}>
+            <Card
+              style={styles.readOnlyCard}
+              isDark={isDark}
+            >
+              <Typography
+                style={[
+                  styles.readOnlyTitle,
+                  isDark && styles.readOnlyTitleDark,
+                ]}
+              >
+                Transaction Locked
+              </Typography>
+              <Typography
+                style={[
+                  styles.readOnlyMessage,
+                  isDark && styles.readOnlyMessageDark,
+                ]}
+              >
+                This transaction has been reconciled and cannot be modified.
+              </Typography>
+            </Card>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
+
+  // If transaction is Cleared, show read-only view
+  if (
+    (initialData?.status as any)?.name === "Cleared" ||
+    (initialData?.status as string) === "Cleared"
+  ) {
+    return (
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={[styles.keyboardAvoid, isDark && styles.keyboardAvoidDark]}
+      >
+        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+        <ScrollView
+          style={[styles.content, isDark && styles.contentDark]}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.section}>
+            <Card
+              style={styles.readOnlyCard}
+              isDark={isDark}
+            >
+              <Typography
+                style={[
+                  styles.readOnlyTitle,
+                  isDark && styles.readOnlyTitleDark,
+                ]}
+              >
+                Transaction Cleared
+              </Typography>
+              <Typography
+                style={[
+                  styles.readOnlyMessage,
+                  isDark && styles.readOnlyMessageDark,
+                ]}
+              >
+                This transaction has been cleared and cannot be modified.
+              </Typography>
+            </Card>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -607,6 +910,23 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                 value={value}
                 onChange={onChange}
                 error={errors.transactionType?.message}
+              />
+            )}
+          />
+        </View>
+
+        {/* Status Selector */}
+        <View style={styles.section}>
+          <Controller
+            control={control}
+            name="status"
+            render={({ field: { onChange, value } }) => (
+              <StatusSelector
+                value={value}
+                onChange={onChange}
+                options={statusOptions}
+                error={errors.status?.message}
+                isDark={isDark}
               />
             )}
           />
@@ -733,50 +1053,98 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   control={control}
                   name={`items.${index}.accountId`}
                   render={({ field: { onChange, value } }) => (
-                    <SearchableDropdown
-                      options={accounts.map((account) => ({
-                        id: account.id,
-                        label: account.accountName,
-                        subtitle: account.accountNumber,
-                        icon: account.icon,
-                        color: account.color,
-                      }))}
-                      value={value}
-                      onSelect={onChange}
-                      placeholder="Select account"
-                      label="Account"
-                      error={errors.items?.[index]?.accountId?.message}
-                      addNewLabel="+ Add New Account"
-                      onAddNew={() => {
-                        Alert.alert(
-                          "Add Account",
-                          "Navigate to add account screen"
-                        );
-                      }}
-                    />
+                    <View>
+                      <SearchableDropdown
+                        options={accounts.map((account) => ({
+                          id: account.id,
+                          label: account.accountName,
+                          subtitle: account.accountNumber,
+                          icon: account.icon,
+                          color: account.color,
+                        }))}
+                        value={value}
+                        onSelect={(accountId) => {
+                          onChange(accountId);
+                          // Fetch balance when account is selected
+                          if (accountId) {
+                            fetchAccountBalance(accountId);
+                          }
+                        }}
+                        placeholder="Select account"
+                        label="Account"
+                        error={errors.items?.[index]?.accountId?.message}
+                        addNewLabel="+ Add New Account"
+                        onAddNew={() => {
+                          Alert.alert(
+                            "Add Account",
+                            "Navigate to add account screen"
+                          );
+                        }}
+                      />
+                      {/* Show account balance for expense transactions */}
+                      {selectedTransactionType === "EXPENSE" &&
+                        value &&
+                        getBalanceText(value) && (
+                          <View style={styles.balanceContainer}>
+                            <Typography
+                              style={[
+                                styles.balanceText,
+                                isDark && styles.balanceTextDark,
+                              ]}
+                            >
+                              Available Balance: {getBalanceText(value)}
+                            </Typography>
+                          </View>
+                        )}
+                    </View>
                   )}
                 />
 
                 <Controller
                   control={control}
                   name={`items.${index}.amount`}
-                  render={({ field: { onChange, onBlur, value } }) => (
-                    <Input
-                      label="Amount"
-                      placeholder="0.00"
-                      value={value?.toString() || ""}
-                      onChangeText={(text) => {
-                        const numValue = parseFloat(
-                          text.replace(/[^0-9.]/g, "")
-                        );
-                        onChange(isNaN(numValue) ? 0 : numValue);
-                      }}
-                      onBlur={onBlur}
-                      keyboardType="numeric"
-                      error={errors.items?.[index]?.amount?.message}
-                      isDark={isDark}
-                    />
-                  )}
+                  render={({ field: { onChange, onBlur, value } }) => {
+                    const accountId = watch(`items.${index}.accountId`);
+                    const hasInsufficientFunds =
+                      selectedTransactionType === "EXPENSE" &&
+                      accountId &&
+                      value &&
+                      !hasSufficientBalance(accountId, value);
+
+                    return (
+                      <View>
+                        <Input
+                          label="Amount"
+                          placeholder="0.00"
+                          value={value?.toString() || ""}
+                          onChangeText={(text) => {
+                            const numValue = parseFloat(
+                              text.replace(/[^0-9.]/g, "")
+                            );
+                            onChange(isNaN(numValue) ? 0 : numValue);
+                          }}
+                          onBlur={onBlur}
+                          keyboardType="numeric"
+                          error={errors.items?.[index]?.amount?.message}
+                          isDark={isDark}
+                        />
+                        {/* Insufficient funds warning */}
+                        {hasInsufficientFunds && (
+                          <View style={styles.insufficientFundsContainer}>
+                            <Typography
+                              style={[
+                                styles.insufficientFundsText,
+                                isDark && styles.insufficientFundsTextDark,
+                              ]}
+                            >
+                              ⚠️ Insufficient funds. Available:{" "}
+                              {getBalanceText(accountId)}
+                            </Typography>
+                          </View>
+                        )}
+                      </View>
+                    );
+                  }}
                 />
 
                 <Controller
@@ -817,12 +1185,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                 <Typography
                   style={[styles.totalAmount, isDark && styles.totalAmountDark]}
                 >
-                  {fields
-                    .reduce((sum, field, index) => {
-                      const amount = watch(`items.${index}.amount`) || 0;
-                      return sum + (typeof amount === "number" ? amount : 0);
-                    }, 0)
-                    .toFixed(2)}{" "}
+                  {fields.reduce((sum, field, index) => {
+                    const amount = watch(`items.${index}.amount`) || 0;
+                    return sum + (typeof amount === "number" ? amount : 0);
+                  }, 0)}{" "}
                   {fields[0] && watch(`items.0.accountId`)
                     ? accounts.find(
                         (acc) => acc.id === watch(`items.0.accountId`)
@@ -1225,6 +1591,64 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  balanceContainer: {
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#F0F9FF",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#0EA5E9",
+  },
+  balanceText: {
+    fontSize: 12,
+    color: "#0C4A6E",
+    fontWeight: "500",
+  },
+  balanceTextDark: {
+    color: "#7DD3FC",
+  },
+  insufficientFundsContainer: {
+    marginTop: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#FECACA",
+  },
+  insufficientFundsText: {
+    fontSize: 12,
+    color: "#991B1B",
+    fontWeight: "500",
+  },
+  insufficientFundsTextDark: {
+    color: "#FECACA",
+  },
+  // Read-only view styles
+  readOnlyCard: {
+    padding: 20,
+    alignItems: "center",
+  },
+  readOnlyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  readOnlyTitleDark: {
+    color: "#FFF",
+  },
+  readOnlyMessage: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  readOnlyMessageDark: {
+    color: "#9CA3AF",
   },
 });
 

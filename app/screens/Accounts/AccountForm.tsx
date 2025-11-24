@@ -53,7 +53,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
     defaultValues: {
       accountName: "",
       accountNumber: "",
-      balance: 0,
+      openingBalance: 0,
       currency: "KSh",
       description: "",
       icon: "credit-card",
@@ -70,6 +70,9 @@ const AccountForm: React.FC<AccountFormProps> = ({
       accountNumber: initialData?.accountNumber || "",
       icon: initialData?.icon || "credit-card",
       color: initialData?.color || "#1976D2",
+      openingBalance: initialData?.openingBalance
+        ? Number(initialData.openingBalance)
+        : 0,
       balance: initialData?.balance ? Number(initialData.balance) : 0,
       currency: initialData?.currency || "KSh",
       description: initialData?.description || "",
@@ -85,6 +88,9 @@ const AccountForm: React.FC<AccountFormProps> = ({
         accountNumber: initialData.accountNumber || "",
         icon: initialData.icon || "credit-card",
         color: initialData.color || "#1976D2",
+        openingBalance: initialData.openingBalance
+          ? Number(initialData.openingBalance)
+          : 0,
         balance: initialData.balance ? Number(initialData.balance) : 0,
         currency: initialData.currency || "KSh",
         description: initialData.description || "",
@@ -166,11 +172,11 @@ const AccountForm: React.FC<AccountFormProps> = ({
 
             <Controller
               control={control}
-              name="balance"
+              name="openingBalance"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label="Starting Balance"
-                  placeholder="Enter starting balance"
+                  label="Opening Balance"
+                  placeholder="Enter initial account balance"
                   value={value?.toString() || ""}
                   keyboardType="decimal-pad"
                   onChangeText={(text) => {
@@ -178,7 +184,7 @@ const AccountForm: React.FC<AccountFormProps> = ({
                     onChange(isNaN(numericValue) ? 0 : numericValue);
                   }}
                   onBlur={onBlur}
-                  error={errors.balance?.message}
+                  error={errors.openingBalance?.message}
                   isDark={isDark}
                 />
               )}
@@ -356,19 +362,45 @@ const AccountForm: React.FC<AccountFormProps> = ({
             )}
           />
 
+          <View>
+            <Controller
+              control={control}
+              name="openingBalance"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="Opening Balance"
+                  placeholder="Enter initial account balance"
+                  value={value?.toString() || ""}
+                  keyboardType="decimal-pad"
+                  onChangeText={(text) => {
+                    const numericValue = text === "" ? 0 : parseFloat(text);
+                    onChange(isNaN(numericValue) ? 0 : numericValue);
+                  }}
+                  onBlur={onBlur}
+                  error={errors.openingBalance?.message}
+                  isDark={isDark}
+                />
+              )}
+            />
+            <Typography
+              variant="caption"
+              style={[styles.warningText, isDark && styles.warningTextDark]}
+            >
+              ⚠️ Changing opening balance will recalculate all historical
+              balances
+            </Typography>
+          </View>
+
           <Controller
             control={control}
             name="balance"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
-                label="Current Balance"
-                placeholder="Enter current balance"
+                label="Current Balance (Read-only)"
+                placeholder="Auto-calculated from opening balance + transactions"
                 value={value?.toString() || ""}
                 keyboardType="decimal-pad"
-                onChangeText={(text) => {
-                  const numericValue = text === "" ? 0 : parseFloat(text);
-                  onChange(isNaN(numericValue) ? 0 : numericValue);
-                }}
+                editable={false}
                 onBlur={onBlur}
                 error={errors.balance?.message}
                 isDark={isDark}
@@ -519,6 +551,15 @@ const styles = StyleSheet.create({
   footerDark: {
     backgroundColor: "#1C1C1E",
     borderTopColor: "#2C2C2E",
+  },
+  warningText: {
+    fontSize: 12,
+    color: "#F59E0B",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  warningTextDark: {
+    color: "#FCD34D",
   },
 });
 

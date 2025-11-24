@@ -16,6 +16,7 @@ export const CreateAccountSchema = z.object({
     .string()
     .regex(/^#[0-9A-F]{6}$/i, "Invalid color format")
     .default("#1976D2"),
+  openingBalance: z.number().default(0),
   balance: z.number().default(0),
   currency: z.string().length(3),
   description: z.string().max(500).optional(),
@@ -42,6 +43,7 @@ export const UpdateAccountSchema = z.object({
     .regex(/^#[0-9A-F]{6}$/i, "Invalid color format")
     .optional(),
   accountType: z.string().min(1).max(100).optional(),
+  openingBalance: z.number().optional(),
   balance: z.number().optional(),
   currency: z.string().length(3).optional(),
   description: z.string().max(500).optional(),

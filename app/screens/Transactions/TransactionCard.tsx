@@ -8,11 +8,13 @@ import { Transaction } from "@/shared/types/filter.types";
 interface TransactionCardProps {
   transaction: Transaction;
   onPress?: () => void;
+  onLongPress?: () => void;
   isDark: boolean;
 }
 
 export const TransactionCard: React.FC<TransactionCardProps> = ({
   onPress,
+  onLongPress,
   isDark = false,
   transaction,
 }) => {
@@ -29,10 +31,18 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
   return (
     <Card
       onPress={onPress}
+      onLongPress={onLongPress}
       isDark={isDark}
     >
       <View style={styles.container}>
-        <View style={[styles.icon, { backgroundColor: "#3B82F620" }]}>
+        <View
+          style={[
+            styles.icon,
+            {
+              backgroundColor: "#3B82F620",
+            },
+          ]}
+        >
           <Feather
             name={isIncome ? "arrow-up" : "arrow-down"}
             size={20}
@@ -74,16 +84,17 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
               {formatDate(transaction.date)}
             </Text>
             <Badge
-              variant={
-                transaction.status.toLowerCase() === "cleared"
-                  ? "success"
-                  : transaction.status.toLowerCase() === "pending"
-                  ? "warning"
-                  : "info"
+              variant="custom"
+              customColor={
+                typeof transaction.status === "object"
+                  ? transaction.status.color
+                  : "#6B7280"
               }
               size="small"
             >
-              {transaction.status.toLowerCase()}
+              {typeof transaction.status === "object"
+                ? transaction.status.name
+                : transaction.status}
             </Badge>
           </View>
         </View>

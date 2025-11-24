@@ -4,6 +4,7 @@ import { View, StyleSheet, TouchableOpacity, ViewStyle } from "react-native";
 interface CardProps {
   children: React.ReactNode;
   onPress?: () => void;
+  onLongPress?: () => void;
   style?: ViewStyle;
   isDark?: boolean;
 }
@@ -11,16 +12,18 @@ interface CardProps {
 export const Card: React.FC<CardProps> = ({
   children,
   onPress,
+  onLongPress,
   style,
   isDark,
 }) => {
-  const CardWrapper = onPress ? TouchableOpacity : View;
+  const CardWrapper = onPress || onLongPress ? TouchableOpacity : View;
 
   return (
     <CardWrapper
       onPress={onPress}
+      onLongPress={onLongPress}
       style={[styles.card, isDark && styles.cardDark, style]}
-      activeOpacity={onPress ? 0.7 : 1}
+      activeOpacity={onPress || onLongPress ? 0.7 : 1}
     >
       {children}
     </CardWrapper>

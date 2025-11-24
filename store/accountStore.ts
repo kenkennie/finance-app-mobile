@@ -13,6 +13,9 @@ interface AccountStore extends AccountState {
   createAccount: (data: CreateAccountData) => Promise<Account>;
   getAccounts: () => Promise<void>;
   getAccountById: (id: string) => Promise<Account | null>;
+  getAccountDetails: (
+    id: string
+  ) => Promise<{ account: Account; transactions: any[] } | null>;
   updateAccount: (id: string, data: UpdateAccountData) => Promise<Account>;
   deleteAccount: (id: string) => Promise<void>;
   setCurrentAccount: (account: Account | null) => void;
@@ -40,6 +43,7 @@ export const useAccountStore = create<AccountStore>((set, get) => ({
         accountNumber: data.accountNumber,
         icon: data.icon,
         color: data.color,
+        openingBalance: data.openingBalance,
         balance: data.balance,
         currency: data.currency,
         description: data.description,
@@ -104,6 +108,26 @@ export const useAccountStore = create<AccountStore>((set, get) => ({
     }
   },
 
+  getAccountDetails: async (
+    id: string
+  ): Promise<{ account: Account; transactions: any[] } | null> => {
+    try {
+      set({ isLoading: true, error: null });
+
+      const data = await accountService.getAccountDetails(id);
+
+      set({ isLoading: false });
+      return data;
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      set({
+        error: errorMessage,
+        isLoading: false,
+      });
+      return null;
+    }
+  },
+
   updateAccount: async (
     id: string,
     data: UpdateAccountData
@@ -117,7 +141,8 @@ export const useAccountStore = create<AccountStore>((set, get) => ({
         accountNumber: data.accountNumber,
         icon: data.icon,
         color: data.color,
-        balance: data.balance || 0,
+        openingBalance: data.openingBalance,
+        balance: data.balance,
         currency: data.currency,
         description: data.description,
         isActive: data.isActive,

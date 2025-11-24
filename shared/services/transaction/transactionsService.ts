@@ -13,7 +13,7 @@ interface GetTransactionsParams {
   categoryIds?: string[];
   accountId?: string;
   accountIds?: string[];
-  status?: "PENDING" | "CLEARED" | "RECONCILED";
+  status?: string;
   statuses?: string[];
   startDate?: Date;
   endDate?: Date;
@@ -92,7 +92,7 @@ export const transactionsService = {
         return {
           ...transaction,
           type: transaction.transactionType?.toLowerCase() || transaction.type,
-          status: transaction.status?.toLowerCase() || transaction.status,
+          status: transaction.status || transaction.status,
           amount: firstItem?.amount || 0,
           title: transaction.title,
           category: firstItem?.Category
@@ -127,7 +127,7 @@ export const transactionsService = {
     return {
       ...transaction,
       type: transaction.transactionType?.toLowerCase() || transaction.type,
-      status: transaction.status?.toLowerCase() || transaction.status,
+      status: transaction.status || transaction.status,
       amount: firstItem?.amount || 0,
       title: transaction.title,
       category: firstItem?.Category
@@ -159,7 +159,7 @@ export const transactionsService = {
       return {
         ...transaction,
         type: transaction.transactionType?.toLowerCase() || transaction.type,
-        status: transaction.status?.toLowerCase() || transaction.status,
+        status: transaction.status || transaction.status,
         amount: firstItem?.amount || 0,
         title: transaction.title,
         category: firstItem?.Category
@@ -192,7 +192,7 @@ export const transactionsService = {
       return {
         ...transaction,
         type: transaction.transactionType?.toLowerCase() || transaction.type,
-        status: transaction.status?.toLowerCase() || transaction.status,
+        status: transaction.status || transaction.status,
         amount: firstItem?.amount || 0,
         title: transaction.title,
         category: firstItem?.Category
@@ -234,7 +234,7 @@ export const transactionsService = {
       return {
         ...transaction,
         type: transaction.transactionType?.toLowerCase() || transaction.type,
-        status: transaction.status?.toLowerCase() || transaction.status,
+        status: transaction.status || transaction.status,
         amount: firstItem?.amount || 0,
         title: transaction.title,
         category: firstItem?.Category

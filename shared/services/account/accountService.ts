@@ -42,6 +42,16 @@ export const accountService = {
     return extractResponseData(response);
   },
 
+  async getAccountDetails(id: string): Promise<{
+    account: Account;
+    transactions: any[];
+  }> {
+    const response = await apiClient.get<
+      ApiSuccessResponse<{ account: Account; transactions: any[] }>
+    >(`/account/${id}/details`);
+    return extractResponseData(response);
+  },
+
   async updateAccount(
     id: string,
     accountData: UpdateAccountDto

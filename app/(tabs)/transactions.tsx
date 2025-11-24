@@ -16,6 +16,7 @@ import { TransactionCard } from "../screens/Transactions/TransactionCard";
 import { TabBar } from "@/shared/components/ui/TabBar";
 import { Card } from "@/shared/components/ui/Card";
 import SimpleFilterBottomSheet from "@/shared/components/ui/filters/simpleFilterBottomSheet";
+import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { Transaction } from "@/shared/types/filter.types";
 
 interface HeaderItem {
@@ -57,6 +58,7 @@ const AllTransactions = () => {
     error,
     getTransactions,
     loadMoreTransactions,
+    deleteTransaction,
     summary,
     pagination,
   } = useTransactionStore();
@@ -67,6 +69,9 @@ const AllTransactions = () => {
   const [activeTab, setActiveTab] = useState("all");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [appliedFilters, setAppliedFilters] = useState<any>({});
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<Transaction | null>(null);
 
   // Refs for request deduplication
   const currentRequestRef = useRef<string>("");
@@ -266,6 +271,30 @@ const AllTransactions = () => {
   const sortedDates = Object.keys(groupedTransactions).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime()
   );
+
+  // Handle delete transaction
+  const handleDeletePress = (transaction: Transaction) => {
+    setTransactionToDelete(transaction);
+    setDeleteModalVisible(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (transactionToDelete) {
+      try {
+        await deleteTransaction(transactionToDelete.id);
+        setDeleteModalVisible(false);
+        setTransactionToDelete(null);
+      } catch (error) {
+        // Error is handled by the store
+        console.error("Failed to delete transaction:", error);
+      }
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
+    setTransactionToDelete(null);
+  };
 
   // Handle load more transactions
   const handleLoadMore = () => {
@@ -473,6 +502,9 @@ const AllTransactions = () => {
                     `/screens/Transactions/TransactionDetails?transactionId=${transactionItem.transaction.id}`
                   )
                 }
+                onLongPress={() =>
+                  handleDeletePress(transactionItem.transaction)
+                }
               />
             );
           }
@@ -653,6 +685,16 @@ const AllTransactions = () => {
         onClose={() => setIsFilterVisible(false)}
         onApply={setAppliedFilters}
         initialFilters={appliedFilters}
+      />
+
+      <ConfirmationModal
+        visible={deleteModalVisible}
+        title="Delete Transaction"
+        message={`Are you sure you want to delete "${transactionToDelete?.title}"? This action cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDark={isDark}
+        destructive
       />
     </View>
   );

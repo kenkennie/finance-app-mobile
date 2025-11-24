@@ -6,6 +6,7 @@ export { Input } from "./Input";
 export { Header } from "./Header";
 export { Typography } from "./Typography";
 export { Badge } from "./Badge";
+export { ConfirmationModal } from "./ConfirmationModal";
 
 // Default exports (components that export as default)
 export { default as SubcategoryManager } from "./SubcategoryManager";

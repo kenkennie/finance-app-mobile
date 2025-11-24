@@ -40,6 +40,13 @@ export interface FilterState {
   quickFilter: "all" | "today" | "thisWeek" | "thisMonth" | null;
 }
 
+export interface TransactionStatus {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
 export interface Transaction {
   id: string;
   transactionType: "EXPENSE" | "INCOME";
@@ -49,7 +56,7 @@ export interface Transaction {
   notes: string;
   createdAt: string;
   updatedAt: string;
-  status: "CLEARED" | "PENDING" | "RECONCILED";
+  status: TransactionStatus | string;
   TransactionItems?: TransactionItem[];
   totalAmount?: number;
   formattedAmount?: string;

@@ -15,18 +15,17 @@ import { Typography } from "@/shared/components/ui/Typography";
 import { Button } from "@/shared/components/ui/Button";
 import { Card } from "@/shared/components/ui/Card";
 import { Badge } from "@/shared/components/ui/Badge";
+import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useAccountStore } from "@/store/accountStore";
 import { useTransactionItemsStore } from "@/store/transactionItemsStore";
-import { Transaction } from "@/shared/types/filter.types";
+import { Transaction, TransactionStatus } from "@/shared/types/filter.types";
 
 const TransactionDetailsScreen = () => {
   const router = useRouter();
   const { transactionId } = useLocalSearchParams<{ transactionId: string }>();
   const { getTransactionById, deleteTransaction } = useTransactionStore();
-  const { categories } = useCategoryStore();
-  const { accounts } = useAccountStore();
   const { getTransactionItemsByTransactionId, transactionItems } =
     useTransactionItemsStore();
 
@@ -36,6 +35,7 @@ const TransactionDetailsScreen = () => {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   useEffect(() => {
     loadTransaction();
@@ -71,25 +71,15 @@ const TransactionDetailsScreen = () => {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Transaction",
-      "Are you sure you want to delete this transaction? This action cannot be undone.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: confirmDelete,
-        },
-      ]
-    );
+    setDeleteModalVisible(true);
   };
 
-  const confirmDelete = async () => {
+  const handleConfirmDelete = async () => {
     if (!transaction) return;
 
     try {
       setIsDeleting(true);
+      setDeleteModalVisible(false);
       await deleteTransaction(transaction.id);
       router.back();
     } catch (error) {
@@ -98,6 +88,10 @@ const TransactionDetailsScreen = () => {
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteModalVisible(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -110,8 +104,9 @@ const TransactionDetailsScreen = () => {
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+  const getStatusColor = (status: string | TransactionStatus) => {
+    const statusName = typeof status === "object" ? status.name : status;
+    switch (statusName.toLowerCase()) {
       case "cleared":
         return "success";
       case "pending":
@@ -253,10 +248,17 @@ const TransactionDetailsScreen = () => {
               {transaction.totalAmount}
             </Typography>
             <Badge
-              variant={getStatusColor(transaction.status)}
+              variant="custom"
+              customColor={
+                typeof transaction.status === "object"
+                  ? transaction.status.color
+                  : "#6B7280"
+              }
               size="medium"
             >
-              {transaction.status.toLowerCase()}
+              {typeof transaction.status === "object"
+                ? transaction.status.name
+                : transaction.status}
             </Badge>
           </View>
         </Card>
@@ -397,6 +399,16 @@ const TransactionDetailsScreen = () => {
           </Button>
         </View>
       </ScrollView>
+
+      <ConfirmationModal
+        visible={deleteModalVisible}
+        title="Delete Transaction"
+        message={`Are you sure you want to delete "${transaction?.title}"? This action cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDark={isDark}
+        destructive
+      />
     </View>
   );
 };

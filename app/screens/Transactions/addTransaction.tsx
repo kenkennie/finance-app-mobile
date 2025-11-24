@@ -1,12 +1,12 @@
 import { Header } from "@/shared/components/ui/Header";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import React, { useEffect } from "react";
 import { View, StyleSheet, useColorScheme } from "react-native";
 import { useToastStore } from "@/store/toastStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import TransactionForm from "./TransactionForm";
 
-const AddTransactionScreen = ({}) => {
+const AddTransactionScreen = () => {
   const { showSuccess, showError } = useToastStore();
   const router = useRouter();
   const { createTransaction, isLoading, clearError, successMessage } =

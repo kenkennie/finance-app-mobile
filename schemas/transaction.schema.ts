@@ -2,12 +2,6 @@ import { z } from "zod";
 
 export const transactionTypeEnum = z.enum(["EXPENSE", "INCOME"]);
 
-export const transactionStatusEnum = z.enum([
-  "PENDING",
-  "CLEARED",
-  "RECONCILED",
-]);
-
 export const TransactionItemSchema = z.object({
   categoryId: z.string().min(1, "Category ID is required"),
   accountId: z.string().min(1, "Account ID is required"),
@@ -20,7 +14,7 @@ export const CreateTransactionSchema = z.object({
   transactionType: transactionTypeEnum,
   date: z.coerce.date(),
   description: z.string().optional(),
-  status: transactionStatusEnum.default("CLEARED"),
+  status: z.string().default("Cleared"),
   notes: z.string().max(1000, "Notes too long").optional(),
   items: z.array(TransactionItemSchema).min(1, "At least one item is required"),
 });
@@ -38,7 +32,7 @@ export const UpdateTransactionSchema = z.object({
     .min(1, "Description is required")
     .max(500, "Description too long")
     .optional(),
-  status: transactionStatusEnum.optional(),
+  status: z.string().optional(),
   notes: z.string().max(1000, "Notes too long").optional(),
   items: z
     .array(TransactionItemSchema)

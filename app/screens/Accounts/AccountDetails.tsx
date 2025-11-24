@@ -14,16 +14,20 @@ import { Card } from "@/shared/components/ui/Card";
 import { Button } from "@/shared/components/ui/Button";
 import { useAccountStore } from "@/store/accountStore";
 import { Account } from "@/shared/types/account.types";
+import { Transaction } from "@/shared/types/filter.types";
+import { TransactionCard } from "@/app/screens/Transactions/TransactionCard";
+import { th } from "zod/v4/locales";
 
 const AccountDetailsScreen = () => {
   const router = useRouter();
   const { accountId } = useLocalSearchParams<{ accountId: string }>();
-  const { getAccountById, deleteAccount, isLoading } = useAccountStore();
+  const { getAccountDetails, deleteAccount, isLoading } = useAccountStore();
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
   const [account, setAccount] = useState<Account | null>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loadingAccount, setLoadingAccount] = useState(true);
 
   useEffect(() => {
@@ -35,8 +39,11 @@ const AccountDetailsScreen = () => {
 
     try {
       setLoadingAccount(true);
-      const accountData = await getAccountById(accountId);
-      setAccount(accountData);
+      const data = await getAccountDetails(accountId);
+      if (data) {
+        setAccount(data.account);
+        setTransactions(data.transactions);
+      }
     } catch (error) {
       console.error("Error loading account:", error);
     } finally {
@@ -206,6 +213,14 @@ const AccountDetailsScreen = () => {
             >
               {formatCurrency(account.balance)}
             </Typography>
+            <Typography
+              style={[
+                styles.openingBalance,
+                isDark ? styles.openingBalanceDark : {},
+              ]}
+            >
+              Opening: {formatCurrency(account.openingBalance)}
+            </Typography>
           </View>
         </Card>
 
@@ -293,6 +308,70 @@ const AccountDetailsScreen = () => {
               {formatDate(account.updatedAt)}
             </Typography>
           </View>
+        </Card>
+
+        {/* Transaction History */}
+        <Card
+          isDark={isDark}
+          style={styles.historyCard}
+        >
+          <Typography
+            variant="h3"
+            style={[styles.sectionTitle, isDark ? styles.sectionTitleDark : {}]}
+          >
+            Transaction History
+          </Typography>
+
+          {loadingAccount ? (
+            <View style={styles.loadingContainer}>
+              <Typography
+                style={[
+                  styles.loadingText,
+                  isDark ? styles.loadingTextDark : {},
+                ]}
+              >
+                Loading transactions...
+              </Typography>
+            </View>
+          ) : transactions.length > 0 ? (
+            <View style={styles.transactionsList}>
+              {transactions.slice(0, 5).map((transaction: Transaction) => (
+                <TransactionCard
+                  key={transaction.id}
+                  transaction={transaction}
+                  isDark={isDark}
+                  onPress={() => {
+                    // Navigate to transaction details
+                    router.push(
+                      `/screens/Transactions/TransactionDetails?transactionId=${transaction.id}`
+                    );
+                  }}
+                />
+              ))}
+              {transactions.length > 5 && (
+                <Button
+                  onPress={() => {
+                    // Navigate to full transaction list for this account
+                    router.push(
+                      `/screens/Transactions/AllTransactions?accountId=${accountId}`
+                    );
+                  }}
+                  variant="outline"
+                  style={styles.viewAllButton}
+                >
+                  View All Transactions
+                </Button>
+              )}
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Typography
+                style={[styles.emptyText, isDark ? styles.emptyTextDark : {}]}
+              >
+                No transactions found for this account
+              </Typography>
+            </View>
+          )}
         </Card>
 
         {/* Action Buttons */}
@@ -412,6 +491,14 @@ const styles = StyleSheet.create({
   balanceDark: {
     color: "#FFF",
   },
+  openingBalance: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  openingBalanceDark: {
+    color: "#9CA3AF",
+  },
   infoCard: {
     marginBottom: 24,
   },
@@ -470,6 +557,27 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     marginBottom: 12,
+  },
+  historyCard: {
+    marginBottom: 24,
+  },
+  transactionsList: {
+    gap: 12,
+  },
+  viewAllButton: {
+    marginTop: 16,
+  },
+  emptyContainer: {
+    alignItems: "center",
+    paddingVertical: 24,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  emptyTextDark: {
+    color: "#9CA3AF",
   },
 });
 

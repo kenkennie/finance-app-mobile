@@ -59,7 +59,7 @@ export interface GetTransactionsParams {
   categoryIds?: string[];
   accountId?: string;
   accountIds?: string[];
-  status?: "PENDING" | "CLEARED" | "RECONCILED";
+  status?: string;
   statuses?: string[];
   startDate?: Date;
   endDate?: Date;

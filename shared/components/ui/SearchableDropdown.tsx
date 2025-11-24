@@ -60,15 +60,16 @@ const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
   const { isDark } = useTheme();
   const [isVisible, setIsVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [filteredOptions, setFilteredOptions] =
-    useState<DropdownOption[]>(options);
+  const [filteredOptions, setFilteredOptions] = useState<DropdownOption[]>(
+    options || []
+  );
 
-  const selectedOption = options.find((option) => option.id === value);
+  const selectedOption = options?.find((option) => option.id === value);
 
   useEffect(() => {
-    let filtered = options;
+    let filtered = options || [];
     if (searchText.trim() !== "") {
-      filtered = options.filter(
+      filtered = (options || []).filter(
         (option) =>
           option.label.toLowerCase().includes(searchText.toLowerCase()) ||
           (option.subtitle &&

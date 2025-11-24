@@ -14,7 +14,9 @@ interface BadgeProps {
     | "warning"
     | "info"
     | "neutral"
-    | "error";
+    | "error"
+    | "custom";
+  customColor?: string;
   size?: "small" | "medium";
   style?: ViewStyle;
 }
@@ -24,14 +26,28 @@ export const Badge: React.FC<BadgeProps> = ({
   children,
   size = "medium",
   variant = "danger",
+  customColor,
   style,
 }) => {
+  const badgeStyle =
+    variant === "custom"
+      ? [
+          styles.badge,
+          styles[size],
+          { backgroundColor: customColor + "20" },
+          style,
+        ]
+      : [styles.badge, styles[variant], styles[size], style];
+
+  const textStyle =
+    variant === "custom" ? { color: customColor } : styles[`${variant}Text`];
+
   return (
-    <View style={[styles.badge, styles[variant], styles[size], style]}>
+    <View style={badgeStyle}>
       <Typography
         variant="caption"
         weight="semibold"
-        style={styles[`${variant}Text`]}
+        style={textStyle}
       >
         {children}
       </Typography>

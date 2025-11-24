@@ -4,6 +4,7 @@ export interface Account {
   accountNumber?: string;
   icon?: string;
   color: string;
+  openingBalance: number;
   balance: number;
   currency: string;
   description?: string;
@@ -26,6 +27,7 @@ export interface CreateAccountData {
   accountNumber: string;
   icon: string;
   color: string;
+  openingBalance: number;
   balance: number;
   currency: string;
   description?: string;
@@ -37,6 +39,7 @@ export interface UpdateAccountData {
   accountNumber?: string;
   icon?: string;
   color?: string;
+  openingBalance?: number;
   balance?: number;
   currency?: string;
   description?: string;

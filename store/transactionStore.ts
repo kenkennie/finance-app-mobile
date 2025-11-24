@@ -7,6 +7,7 @@ import {
 import { Transaction } from "@/shared/types/filter.types";
 import { extractErrorMessage } from "@/shared/utils/api/responseHandler";
 import { transactionsService } from "@/shared/services/transaction/transactionsService";
+import { useAccountStore } from "./accountStore";
 
 interface TransactionStore extends TransactionState {
   // Actions
@@ -50,6 +51,9 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       // Call the API to create transaction
       await transactionsService.createTransaction(data);
 
+      // Refresh accounts to update balances
+      await useAccountStore.getState().getAccounts();
+
       set({
         isLoading: false,
         successMessage: "Transaction created successfully",
@@ -69,7 +73,11 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       set({ isLoading: true, error: null });
 
       // Call the API to update transaction
-      // For now, we'll just simulate success
+      await transactionsService.updateTransaction(id, data);
+
+      // Refresh accounts to update balances
+      await useAccountStore.getState().getAccounts();
+
       set({
         isLoading: false,
         successMessage: "Transaction updated successfully",
@@ -89,11 +97,17 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       set({ isLoading: true, error: null });
 
       // Call the API to delete transaction
-      // For now, we'll just simulate success
-      set({
+      await transactionsService.deleteTransaction(id);
+
+      // Refresh accounts to update balances
+      await useAccountStore.getState().getAccounts();
+
+      // Remove the transaction from the local state
+      set((state) => ({
+        transactions: state.transactions.filter((t) => t.id !== id),
         isLoading: false,
         successMessage: "Transaction deleted successfully",
-      });
+      }));
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
       set({
