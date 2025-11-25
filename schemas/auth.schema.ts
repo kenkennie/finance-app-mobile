@@ -2,6 +2,7 @@ import { z } from "zod";
 
 // Base validation schemas
 export const emailSchema = z
+  .string()
   .email("Please provide a valid email address")
   .max(255, "Email must not exceed 255 characters")
   .transform((email) => email.toLowerCase().trim());
@@ -117,43 +118,71 @@ export const deviceInfoSchema = z.object({
 });
 
 // Auth DTOs with Zod
-export const registerSchema = z
-  .object({
-    email: emailSchema,
-    password: passwordSchema,
-    fullName: nameSchema,
-  })
-  .strict(); // Prevent extra fields
+export const registerSchema = z.object({
+  email: z
+    .string()
+    .email("Please provide a valid email address")
+    .max(255, "Email must not exceed 255 characters"),
+  password: passwordSchema,
+  fullName: z
+    .string()
+    .min(2, "Name must be at least 2 characters long")
+    .max(50, "Name must not exceed 50 characters")
+    .regex(
+      /^[a-zA-Z\s'-]+$/,
+      "Name can only contain letters, spaces, hyphens, and apostrophes"
+    ),
+});
 
-export const loginSchema = z
-  .object({
-    email: emailSchema,
-    password: z.string().min(1, "Password is required"),
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .email("Please provide a valid email address")
+    .max(255, "Email must not exceed 255 characters"),
+  password: z.string().min(1, "Password is required"),
 
-    // Device information
-    // deviceInfo: deviceInfoSchema,
-  })
-  .strict();
+  // Device information
+  // deviceInfo: deviceInfoSchema,
+});
 
 export const forgotPasswordSchema = z
   .object({
-    email: emailSchema,
+    email: z
+      .string()
+      .email("Please provide a valid email address")
+      .max(255, "Email must not exceed 255 characters"),
   })
   .strict();
 
-export const updateUserSchema = z
-  .object({
-    email: emailSchema.optional(),
-    fullName: nameSchema.optional(),
-    phoneNumber: phoneSchema.optional(),
-    avatarUrl: z
-      .string()
-      .url("Please provide a valid image URL")
-      .optional()
-      .or(z.literal("")),
-  })
-  .strict()
-  .partial();
+export const updateUserSchema = z.object({
+  email: z
+    .string()
+    .email("Please provide a valid email address")
+    .max(255, "Email must not exceed 255 characters")
+    .optional(),
+  fullName: z
+    .string()
+    .min(2, "Name must be at least 2 characters long")
+    .max(50, "Name must not exceed 50 characters")
+    .regex(
+      /^[a-zA-Z\s'-]+$/,
+      "Name can only contain letters, spaces, hyphens, and apostrophes"
+    )
+    .optional(),
+  phoneNumber: z
+    .string()
+    .regex(
+      /^(\+\d{1,3}[\s-]?)?(\(\d{1,4}\)[\s-]?)?[\d\s-]{7,15}$/,
+      "Invalid phone number format. Please include at least 7 digits and use standard characters (numbers, spaces, hyphens, and parentheses)."
+    )
+    .max(30, "Phone number is too long")
+    .optional(),
+  avatarUrl: z
+    .string()
+    .url("Please provide a valid image URL")
+    .optional()
+    .or(z.literal("")),
+});
 
 export const resetPasswordSchema = z
   .object({
@@ -224,8 +253,8 @@ export const authResponseSchema = z.object({
   refreshToken: z.string().optional(),
   user: z
     .object({
-      id: z.uuid(),
-      email: z.email(),
+      id: z.string().uuid(),
+      email: z.string().email(),
       firstName: z.string(),
       twoFactorEnabled: z.boolean(),
     })

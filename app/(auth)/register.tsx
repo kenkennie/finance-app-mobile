@@ -56,11 +56,18 @@ export default function RegisterScreen() {
 
   const onSubmit = async (data: RegisterDto) => {
     try {
+      // Clean the data before sending
+      const cleanedData = {
+        ...data,
+        email: data.email.toLowerCase().trim(),
+        fullName: data.fullName.trim().replace(/\s{2,}/g, " "),
+      };
+
       // ✅ Get success message from register
       const successMessage = await register(
-        data.fullName,
-        data.email,
-        data.password
+        cleanedData.fullName,
+        cleanedData.email,
+        cleanedData.password
       );
 
       // ✅ Show success toast with backend message

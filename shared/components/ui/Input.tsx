@@ -4,7 +4,6 @@ import {
   Eye,
   EyeOff,
   Search,
-  LucideIcon,
   Calendar,
   DollarSign,
   Tag,
