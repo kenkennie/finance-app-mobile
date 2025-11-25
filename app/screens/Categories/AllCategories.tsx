@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  ScrollView,
+  SectionList,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
@@ -39,8 +39,16 @@ const useDebounce = (value: string, delay: number) => {
 const AllCategories = () => {
   const router = useRouter();
   const { isDark } = useTheme();
-  const { categories, isLoading, error, getCategories, deleteCategory } =
-    useCategoryStore();
+  const {
+    categories,
+    isLoading,
+    isLoadingMore,
+    hasMore,
+    error,
+    getCategories,
+    loadMoreCategories,
+    deleteCategory,
+  } = useCategoryStore();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -62,6 +70,22 @@ const AllCategories = () => {
 
     getCategories(filters);
   }, [activeTab, debouncedSearchQuery, getCategories]);
+
+  const handleLoadMore = () => {
+    if (!isLoadingMore && hasMore) {
+      const filters: any = {};
+      if (activeTab === "income") {
+        filters.type = "INCOME";
+      } else if (activeTab === "expenses") {
+        filters.type = "EXPENSE";
+      }
+      if (debouncedSearchQuery.trim()) {
+        filters.search = debouncedSearchQuery.trim();
+      }
+
+      loadMoreCategories(filters);
+    }
+  };
 
   // Filter categories based on search (tab filtering is done server-side)
   const filteredCategories = categories.filter((category) => {
@@ -87,6 +111,12 @@ const AllCategories = () => {
     groups[type].push(category);
     return groups;
   }, {} as Record<string, Category[]>);
+
+  // Prepare sections data for SectionList
+  const sections = Object.keys(groupedCategories).map((type) => ({
+    title: type,
+    data: groupedCategories[type],
+  }));
 
   const handleEditCategory = (category: Category) => {
     router.push({
@@ -184,24 +214,6 @@ const AllCategories = () => {
     </TouchableOpacity>
   );
 
-  const renderSection = (type: string, categories: Category[]) => (
-    <View
-      key={type}
-      style={styles.section}
-    >
-      <Typography
-        variant="h4"
-        weight="semibold"
-        style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
-      >
-        {type} Categories ({categories.length})
-      </Typography>
-      {categories.map((category) => (
-        <View key={category.id}>{renderCategoryItem({ item: category })}</View>
-      ))}
-    </View>
-  );
-
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       <Header
@@ -220,58 +232,93 @@ const AllCategories = () => {
         />
       </View>
 
-      <ScrollView
+      <SectionList
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
-      >
-        <Card
-          isDark={isDark}
-          style={styles.filtersCard}
-        >
-          <TabBar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            isDark={isDark}
-          />
-        </Card>
-
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator
-              size="large"
-              color={isDark ? "#FFF" : "#000"}
-            />
+        sections={sections}
+        keyExtractor={(item) => item.id}
+        renderItem={renderCategoryItem}
+        renderSectionHeader={({ section: { title, data } }) => (
+          <View style={styles.section}>
             <Typography
-              style={[styles.loadingText, isDark ? styles.loadingTextDark : {}]}
+              variant="h4"
+              weight="semibold"
+              style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
             >
-              Loading categories...
+              {title} Categories ({data.length})
             </Typography>
           </View>
-        ) : error ? (
-          <View style={styles.errorContainer}>
-            <Typography
-              style={[styles.errorText, isDark ? styles.errorTextDark : {}]}
-            >
-              {error}
-            </Typography>
-          </View>
-        ) : Object.keys(groupedCategories).length === 0 ? (
-          <View style={styles.emptyContainer}>
-            <Typography
-              style={[styles.emptyText, isDark ? styles.emptyTextDark : {}]}
-            >
-              {debouncedSearchQuery
-                ? "No categories found matching your search."
-                : "No categories found. Create your first category!"}
-            </Typography>
-          </View>
-        ) : (
-          Object.keys(groupedCategories).map((type) =>
-            renderSection(type, groupedCategories[type])
-          )
         )}
-      </ScrollView>
+        ListHeaderComponent={
+          <Card
+            isDark={isDark}
+            style={styles.filtersCard}
+          >
+            <TabBar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              isDark={isDark}
+            />
+          </Card>
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator
+                size="large"
+                color={isDark ? "#FFF" : "#000"}
+              />
+              <Typography
+                style={[
+                  styles.loadingText,
+                  isDark ? styles.loadingTextDark : {},
+                ]}
+              >
+                Loading categories...
+              </Typography>
+            </View>
+          ) : error ? (
+            <View style={styles.errorContainer}>
+              <Typography
+                style={[styles.errorText, isDark ? styles.errorTextDark : {}]}
+              >
+                {error}
+              </Typography>
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Typography
+                style={[styles.emptyText, isDark ? styles.emptyTextDark : {}]}
+              >
+                {debouncedSearchQuery
+                  ? "No categories found matching your search."
+                  : "No categories found. Create your first category!"}
+              </Typography>
+            </View>
+          )
+        }
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          isLoadingMore ? (
+            <View style={styles.loadingMoreContainer}>
+              <ActivityIndicator
+                size="small"
+                color={isDark ? "#FFF" : "#000"}
+              />
+              <Typography
+                style={[
+                  styles.loadingText,
+                  isDark ? styles.loadingTextDark : {},
+                ]}
+              >
+                Loading more categories...
+              </Typography>
+            </View>
+          ) : null
+        }
+      />
 
       <FAB
         icon="plus"
@@ -391,6 +438,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingTop: 60,
+  },
+  loadingMoreContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 16,

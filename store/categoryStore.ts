@@ -17,6 +17,11 @@ interface CategoryStore extends CategoryState {
     includeInactive?: boolean;
     search?: string;
   }) => Promise<void>;
+  loadMoreCategories: (filters?: {
+    type?: "EXPENSE" | "INCOME";
+    includeInactive?: boolean;
+    search?: string;
+  }) => Promise<void>;
   getCategoryById: (id: string) => Promise<Category | null>;
   updateCategory: (id: string, data: UpdateCategoryData) => Promise<Category>;
   deleteCategory: (id: string) => Promise<void>;
@@ -32,6 +37,8 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   categories: [],
   currentCategory: null,
   isLoading: false,
+  isLoadingMore: false,
+  hasMore: true,
   error: null,
   successMessage: null,
 
@@ -83,7 +90,9 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       const response = await categoryService.getCategories(
         filters?.type,
         filters?.includeInactive,
-        filters?.search
+        filters?.search,
+        20, // limit
+        0 // offset
       );
 
       // Flatten the hierarchical categories for flat display
@@ -106,6 +115,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
 
       set({
         categories: flattenCategories(response.data),
+        hasMore: response.meta?.hasMore ?? false,
         isLoading: false,
       });
     } catch (error: any) {
@@ -113,6 +123,59 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       set({
         error: errorMessage,
         isLoading: false,
+      });
+    }
+  },
+
+  loadMoreCategories: async (filters?: {
+    type?: "EXPENSE" | "INCOME";
+    includeInactive?: boolean;
+    search?: string;
+  }): Promise<void> => {
+    try {
+      const { categories, hasMore } = get();
+      if (!hasMore) return;
+
+      set({ isLoadingMore: true, error: null });
+
+      const response = await categoryService.getCategories(
+        filters?.type,
+        filters?.includeInactive,
+        filters?.search,
+        20, // limit
+        categories.length // offset
+      );
+
+      // Flatten the hierarchical categories for flat display
+      const flattenCategories = (cats: any[]): any[] => {
+        if (!Array.isArray(cats)) return [];
+        const result: any[] = [];
+        for (const cat of cats) {
+          result.push(cat);
+          if (
+            cat.children &&
+            Array.isArray(cat.children) &&
+            cat.children.length > 0
+          ) {
+            result.push(...flattenCategories(cat.children));
+          }
+        }
+
+        return result;
+      };
+
+      const newCategories = flattenCategories(response.data);
+
+      set({
+        categories: [...categories, ...newCategories],
+        hasMore: response.meta?.hasMore ?? false,
+        isLoadingMore: false,
+      });
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      set({
+        error: errorMessage,
+        isLoadingMore: false,
       });
     }
   },

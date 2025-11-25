@@ -37,20 +37,21 @@ export const categoryService = {
   async getCategories(
     type?: "EXPENSE" | "INCOME",
     includeInactive?: boolean,
-    search?: string
+    search?: string,
+    limit?: number,
+    offset?: number
   ): Promise<{ data: Category[]; meta: any }> {
     const params = new URLSearchParams();
     if (type) params.append("type", type);
     if (includeInactive) params.append("includeInactive", "true");
     if (search) params.append("search", search);
+    if (limit) params.append("limit", limit.toString());
+    if (offset) params.append("offset", offset.toString());
 
     const queryString = params.toString();
     const url = queryString ? `/categories?${queryString}` : "/categories";
 
     const response = await apiClient.get<{ data: Category[]; meta: any }>(url);
-    // console.log("====================================");
-    // console.log(response.data.data);
-    // console.log("====================================");
 
     return response.data.data;
   },

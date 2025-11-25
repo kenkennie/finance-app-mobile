@@ -28,6 +28,8 @@ export interface CategoryState {
   categories: Category[];
   currentCategory: Category | null;
   isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   error: string | null;
   successMessage: string | null;
 }
