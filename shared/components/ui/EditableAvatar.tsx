@@ -1,31 +1,48 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import React, { useMemo } from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { generateAvatarData } from "../../utils/avatarUtils";
 
 interface EditableAvatarProps {
   fullName: string;
-  imageUri: string;
+  userId: string;
+  imageUri?: string;
   onChangePhoto: () => void;
-  isDark: boolean;
+  isDark?: boolean;
+  size?: number;
 }
 export const EditableAvatar: React.FC<EditableAvatarProps> = ({
   fullName,
+  userId,
   imageUri,
   onChangePhoto,
   isDark = false,
+  size = 120,
 }) => {
-  const getInitial = () => fullName.charAt(0).toUpperCase();
+  const avatarData = useMemo(() => {
+    return generateAvatarData(fullName, userId);
+  }, [fullName, userId]);
 
   return (
     <View style={styles.container}>
       <View style={styles.avatarWrapper}>
-        <View style={[styles.avatar, isDark && styles.avatarDark]}>
-          <Feather
-            name="user"
-            size={60}
-            color="#9CA3AF"
+        {imageUri && imageUri.trim() ? (
+          <Image
+            source={{ uri: imageUri }}
+            style={[styles.avatar, { width: size, height: size }]}
           />
-        </View>
+        ) : (
+          <View
+            style={[
+              styles.avatar,
+              { width: size, height: size, backgroundColor: avatarData.color },
+            ]}
+          >
+            <Text style={[styles.initials, { fontSize: size * 0.4 }]}>
+              {avatarData.initials}
+            </Text>
+          </View>
+        )}
         <TouchableOpacity
           style={styles.editButton}
           onPress={onChangePhoto}
@@ -85,5 +102,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#2563EB",
+  },
+  initials: {
+    color: "white",
+    fontWeight: "600",
   },
 });

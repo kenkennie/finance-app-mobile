@@ -128,10 +128,10 @@ export const authService = {
   },
 
   async updateProfile(updateUser: Partial<User>): Promise<{
-    data: AuthResponseData;
+    data: { user: User };
     message: string;
   }> {
-    const response = await apiClient.put<ApiSuccessResponse<AuthResponseData>>(
+    const response = await apiClient.put<ApiSuccessResponse<{ user: User }>>(
       "/user/me/update-profile",
       updateUser
     );
@@ -143,7 +143,7 @@ export const authService = {
     const { data } = result;
     return {
       data,
-      message: data.message || "Profile updated successfully",
+      message: result.message || "Profile updated successfully",
     };
   },
 

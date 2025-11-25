@@ -78,7 +78,8 @@ const ProfileScreen = () => {
           name={user?.fullName || "Unknown User"}
           email={user?.email || "No email provided"}
           isDark={isDark}
-          avatarUri={user?.avatar || "https://via.placeholder.com/150"}
+          avatarUri={user?.avatar}
+          userId={user?.id}
           onEditPress={() => router.push("/screens/profile/EditProfileScreen")}
         />
 

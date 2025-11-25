@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import {
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { useAuthStore } from "@/store/authStore";
 import { useToastStore } from "@/store/toastStore";
 import { loginSchema, type LoginDto } from "@/schemas/auth.schema";
@@ -50,13 +49,12 @@ export default function LoginScreen() {
   const onSubmit = async (data: LoginDto) => {
     try {
       const successMessage = await login(data.email, data.password);
-      showSuccess(successMessage || "Login successful!");
+      showSuccess(successMessage);
 
       setTimeout(() => {
         router.replace("/(tabs)");
       }, 100);
     } catch (error: any) {
-      console.error("❌ Login failed:", error.message);
       showError(error.message);
     }
   };

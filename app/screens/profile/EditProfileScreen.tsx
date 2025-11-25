@@ -10,6 +10,7 @@ import { colors } from "@/theme/colors";
 import { borderRadius, fontSize } from "@/theme/spacing";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -19,6 +20,7 @@ import {
   useColorScheme,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
 import { useToastStore } from "@/store/toastStore";
 
@@ -29,12 +31,12 @@ const EditProfileScreen = () => {
   const user = useAuthStore((state) => state.user);
   const updatedUser = useAuthStore((state) => state.editUser);
   const { showSuccess, showError } = useToastStore();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
-    reset,
   } = useForm<updateUserDto>({
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
@@ -47,7 +49,25 @@ const EditProfileScreen = () => {
 
   const onSubmit = async (data: updateUserDto) => {
     try {
-      const successMessage = await updatedUser(data);
+      // If user selected a new image, we need to upload it first
+      // In a real app, you'd upload to your server/cloud storage and get back a URL
+      let avatarUrl = data.avatarUrl;
+
+      if (selectedImage) {
+        // TODO: Implement image upload logic here
+        // Example: const uploadedUrl = await uploadImageToServer(selectedImage);
+        // avatarUrl = uploadedUrl;
+
+        // For now, we'll just use the local URI (this won't persist across app restarts)
+        avatarUrl = selectedImage;
+      }
+
+      const updateData = {
+        ...data,
+        avatarUrl,
+      };
+
+      const successMessage = await updatedUser(updateData);
       showSuccess(successMessage);
       router.back();
     } catch (error: any) {
@@ -55,9 +75,49 @@ const EditProfileScreen = () => {
     }
   };
 
-  const handleChangePhoto = () => {
-    console.log("Change photo pressed");
-    // Implement image picker logic here
+  const handleChangePhoto = async () => {
+    try {
+      // Request permissions
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "We need access to your photo library to change your profile picture.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Settings",
+              onPress: () => ImagePicker.requestMediaLibraryPermissionsAsync(),
+            },
+          ]
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1], // Square aspect ratio for avatars
+        quality: 0.8, // Good quality but not too large
+        base64: false, // We'll handle the URI
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        setSelectedImage(imageUri);
+
+        // Update form data
+        // Note: In a real app, you'd upload to a server and get back a URL
+        // For now, we'll just store the local URI
+        // You might want to implement actual upload logic here
+      }
+    } catch (error) {
+      console.error("Image picker error:", error);
+      showError("Failed to select image. Please try again.");
+    }
   };
 
   return (
@@ -80,8 +140,9 @@ const EditProfileScreen = () => {
           keyboardShouldPersistTaps="handled"
         >
           <EditableAvatar
-            imageUri={user?.avatar || ""}
+            imageUri={selectedImage || user?.avatar}
             fullName={user?.fullName || ""}
+            userId={user?.id || ""}
             onChangePhoto={handleChangePhoto}
             isDark={isDark}
           />
