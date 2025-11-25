@@ -12,6 +12,9 @@ import {
   Circle,
   X,
   Filter,
+  User,
+  Mail,
+  Lock,
 } from "lucide-react-native";
 import React, { useState } from "react";
 import {
@@ -56,6 +59,12 @@ const getIconComponent = (iconName: string) => {
       return X;
     case "filter":
       return Filter;
+    case "user":
+      return User;
+    case "email":
+      return Mail;
+    case "password":
+      return Lock;
     default:
       return null;
   }

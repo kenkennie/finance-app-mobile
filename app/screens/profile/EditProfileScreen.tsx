@@ -98,6 +98,7 @@ const EditProfileScreen = () => {
                   onChangeText={onChange}
                   onBlur={onBlur}
                   error={errors.fullName?.message}
+                  isDark={isDark}
                 />
               )}
             />
@@ -115,6 +116,7 @@ const EditProfileScreen = () => {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   error={errors.email?.message}
+                  isDark={isDark}
                 />
               )}
             />
@@ -131,6 +133,7 @@ const EditProfileScreen = () => {
                   onBlur={onBlur}
                   keyboardType="phone-pad"
                   error={errors.phoneNumber?.message}
+                  isDark={isDark}
                 />
               )}
             />

@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  useColorScheme,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -21,6 +23,8 @@ import { fontSize, spacing } from "@/theme/spacing";
 import { useToastStore } from "@/store/toastStore";
 
 export default function RegisterScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { register, isLoading, isAuthenticated, clearError } = useAuthStore();
   const { showSuccess, showError } = useToastStore();
@@ -68,7 +72,8 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -81,11 +86,18 @@ export default function RegisterScreen() {
             <View style={styles.logoContainer}>
               <Text style={styles.logo}>💰</Text>
             </View>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join ExpenseFlow today</Text>
+            <Text style={[styles.title, isDark && styles.titleDark]}>
+              Create Account
+            </Text>
+            <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
+              Join ExpenseFlow today
+            </Text>
           </View>
 
-          <Card style={styles.card}>
+          <Card
+            style={styles.card}
+            isDark={isDark}
+          >
             <View style={styles.form}>
               <Controller
                 control={control}
@@ -98,6 +110,8 @@ export default function RegisterScreen() {
                     onChangeText={onChange}
                     onBlur={onBlur}
                     error={errors.fullName?.message}
+                    isDark={isDark}
+                    leftIcon="user"
                   />
                 )}
               />
@@ -115,6 +129,8 @@ export default function RegisterScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     error={errors.email?.message}
+                    isDark={isDark}
+                    leftIcon="email"
                   />
                 )}
               />
@@ -131,6 +147,9 @@ export default function RegisterScreen() {
                     onBlur={onBlur}
                     secureTextEntry
                     error={errors.password?.message}
+                    isDark={isDark}
+                    leftIcon="password"
+                    showPasswordToggle
                   />
                 )}
               />
@@ -145,7 +164,11 @@ export default function RegisterScreen() {
               </Button>
 
               <View style={styles.footer}>
-                <Text style={styles.footerText}>Already have an account? </Text>
+                <Text
+                  style={[styles.footerText, isDark && styles.footerTextDark]}
+                >
+                  Already have an account?{" "}
+                </Text>
                 <TouchableOpacity onPress={() => router.push("/(auth)/login")}>
                   <Text style={styles.linkBold}>Sign in</Text>
                 </TouchableOpacity>
@@ -162,6 +185,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
+  },
+  containerDark: {
+    backgroundColor: "#000",
   },
   keyboardView: {
     flex: 1,
@@ -193,10 +219,16 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
+  titleDark: {
+    color: "#FFF",
+  },
   subtitle: {
     fontSize: fontSize.md,
     color: colors.text.secondary,
     textAlign: "center",
+  },
+  subtitleDark: {
+    color: "#9CA3AF",
   },
   card: {
     marginBottom: spacing.lg,
@@ -227,6 +259,9 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: fontSize.sm,
     color: colors.text.secondary,
+  },
+  footerTextDark: {
+    color: "#9CA3AF",
   },
   checkboxContainer: {
     flexDirection: "row",
@@ -264,7 +299,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: fontSize.xs,
-    color: colors.danger,
+    color: colors.error,
     marginTop: spacing.xs,
   },
 });

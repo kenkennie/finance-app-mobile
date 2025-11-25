@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  useColorScheme,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useForm, Controller } from "react-hook-form";
@@ -22,6 +24,8 @@ import { fontSize, spacing } from "@/theme/spacing";
 import { Button } from "@/shared/components/ui/Button";
 
 export default function LoginScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
   const router = useRouter();
   const { login, isLoading, clearError } = useAuthStore();
   const { showSuccess, showError } = useToastStore();
@@ -58,7 +62,8 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
@@ -68,13 +73,18 @@ export default function LoginScreen() {
             <View style={styles.logoContainer}>
               <Text style={styles.logo}>💰</Text>
             </View>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, isDark && styles.titleDark]}>
+              Welcome Back
+            </Text>
+            <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
               Sign in to continue to ExpenseFlow
             </Text>
           </View>
 
-          <Card style={styles.card}>
+          <Card
+            style={styles.card}
+            isDark={isDark}
+          >
             <View style={styles.form}>
               <Controller
                 control={control}
@@ -90,7 +100,7 @@ export default function LoginScreen() {
                     autoCapitalize="none"
                     error={errors.email?.message}
                     leftIcon="email"
-                    isDark
+                    isDark={isDark}
                   />
                 )}
               />
@@ -110,7 +120,7 @@ export default function LoginScreen() {
                     error={errors.password?.message}
                     leftIcon="password"
                     showPasswordToggle
-                    isDark
+                    isDark={isDark}
                   />
                 )}
               />
@@ -155,6 +165,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.backgroundSecondary,
   },
+  containerDark: {
+    backgroundColor: "#000",
+  },
   keyboardView: {
     flex: 1,
   },
@@ -185,10 +198,16 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
+  titleDark: {
+    color: "#FFF",
+  },
   subtitle: {
     fontSize: fontSize.md,
     color: colors.text.secondary,
     textAlign: "center",
+  },
+  subtitleDark: {
+    color: "#9CA3AF",
   },
   card: {
     marginBottom: spacing.lg,
@@ -214,6 +233,9 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: fontSize.sm,
     color: colors.text.secondary,
+  },
+  footerTextDark: {
+    color: "#9CA3AF",
   },
   link: {
     fontSize: fontSize.sm,
