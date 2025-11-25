@@ -19,7 +19,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
   label,
 }) => {
   const { isDark } = useTheme();
-  const [showPicker, setShowPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [date, setDate] = useState(new Date());
 
   useEffect(() => {
@@ -35,21 +36,45 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
   };
 
   const handleDateChange = (event: any, selectedDate?: Date) => {
     if (Platform.OS === "android") {
-      setShowPicker(false);
+      setShowDatePicker(false);
     }
     if (selectedDate) {
-      setDate(selectedDate);
-      onChange(selectedDate);
+      const newDate = new Date(selectedDate);
+      // Set current time when date is selected
+      const now = new Date();
+      newDate.setHours(now.getHours());
+      newDate.setMinutes(now.getMinutes());
+      setDate(newDate);
+      onChange(newDate);
     }
   };
 
-  const showDatePicker = () => {
-    setShowPicker(true);
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    if (Platform.OS === "android") {
+      setShowTimePicker(false);
+    }
+    if (selectedTime) {
+      const newDate = new Date(date);
+      newDate.setHours(selectedTime.getHours());
+      newDate.setMinutes(selectedTime.getMinutes());
+      setDate(newDate);
+      onChange(newDate);
+    }
+  };
+
+  const showDateSelection = () => {
+    setShowDatePicker(true);
+  };
+
+  const showTimeSelection = () => {
+    setShowTimePicker(true);
   };
 
   const displayValue = value ? formatDate(date) : "";
@@ -61,29 +86,57 @@ const DatePicker: React.FC<DatePickerProps> = ({
           {label}
         </Typography>
       )}
-      <TouchableOpacity
-        onPress={showDatePicker}
-        style={styles.dateInput}
-      >
-        <Input
-          value={displayValue}
-          placeholder="Select date"
-          editable={false}
-          error={error}
-          rightIcon="calendar"
-          onRightIconPress={showDatePicker}
-          isDark={isDark}
-        />
-      </TouchableOpacity>
+      <View style={styles.inputRow}>
+        <TouchableOpacity
+          onPress={showDateSelection}
+          style={[styles.dateInput, styles.datePart]}
+        >
+          <Input
+            value={displayValue.split(" ")[0] || ""}
+            placeholder="Select date"
+            editable={false}
+            error={error}
+            rightIcon="calendar"
+            onRightIconPress={showDateSelection}
+            isDark={isDark}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={showTimeSelection}
+          style={[styles.dateInput, styles.timePart]}
+        >
+          <Input
+            value={displayValue.split(" ")[1] || ""}
+            placeholder="Select time"
+            editable={false}
+            rightIcon="clock"
+            onRightIconPress={showTimeSelection}
+            isDark={isDark}
+          />
+        </TouchableOpacity>
+      </View>
 
-      {showPicker && (
+      {showDatePicker && (
         <DateTimePicker
           value={date}
           mode="date"
           display="default"
           onChange={handleDateChange}
           maximumDate={new Date(2030, 11, 31)}
-          minimumDate={new Date(2000, 0, 1)}
+          minimumDate={new Date(2023, 0, 1)}
+          themeVariant={isDark ? "dark" : "light"}
+        />
+      )}
+
+      {showTimePicker && (
+        <DateTimePicker
+          value={date}
+          mode="time"
+          display="default"
+          onChange={handleTimeChange}
+          maximumDate={new Date(2030, 11, 31)}
+          minimumDate={new Date(2023, 0, 1)}
+          themeVariant={isDark ? "dark" : "light"}
         />
       )}
     </View>
@@ -103,8 +156,18 @@ const styles = StyleSheet.create({
   labelDark: {
     color: "#D1D5DB",
   },
+  inputRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
   dateInput: {
-    // Style for the touchable container if needed
+    flex: 1,
+  },
+  datePart: {
+    // Date input specific styles if needed
+  },
+  timePart: {
+    // Time input specific styles if needed
   },
 });
 

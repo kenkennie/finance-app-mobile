@@ -51,7 +51,6 @@ export interface Transaction {
   id: string;
   transactionType: "EXPENSE" | "INCOME";
   title: string;
-  description: string;
   date: string;
   notes: string;
   createdAt: string;

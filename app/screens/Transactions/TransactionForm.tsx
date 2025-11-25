@@ -31,6 +31,7 @@ import {
   UpdateTransactionDto,
 } from "@/schemas/transaction.schema";
 import { Transaction } from "@/shared/types/filter.types";
+import { formatNumber } from "@/shared/utils/formatUtils";
 
 // Status selector component
 const StatusSelector: React.FC<{
@@ -93,7 +94,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     defaultValues: {
       title: "",
       date: new Date(),
-      description: "",
       status: "Cleared" as string,
       notes: "",
       items: [
@@ -111,10 +111,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const editForm = useForm<UpdateTransactionDto>({
     resolver: zodResolver(UpdateTransactionSchema as any),
     defaultValues: {
-      title: initialData?.title || initialData?.description || "",
+      title: initialData?.title || "",
       transactionType: initialData?.transactionType || "EXPENSE",
       date: initialData?.date ? new Date(initialData.date) : new Date(),
-      description: initialData?.description || "",
       status: ((initialData?.status as any)?.name ||
         (initialData?.status as string) ||
         "Cleared") as "Pending" | "Cleared" | "Reconciled",
@@ -268,7 +267,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
     const effectiveBalance = getEffectiveBalance(accountId, currentItemIndex);
     const account = accounts.find((acc) => acc.id === accountId);
-    const currency = account?.currency || "$";
+    const currency = account?.currency;
     return `${currency}${effectiveBalance}`;
   };
 
@@ -276,10 +275,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   useEffect(() => {
     if (mode === "edit" && initialData) {
       editForm.reset({
-        title: initialData.title || initialData.description || "",
+        title: initialData.title || "",
         transactionType: initialData.transactionType || "EXPENSE",
         date: initialData.date ? new Date(initialData.date) : new Date(),
-        description: initialData.description || "",
         status: ((initialData?.status as any)?.name ||
           (initialData?.status as string) ||
           "Cleared") as "Pending" | "Cleared" | "Reconciled",
@@ -299,7 +297,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     data: CreateTransactionDto | UpdateTransactionDto
   ) => {
     // Validate balance for expense transactions
-    if (mode === "create" && data.transactionType === "EXPENSE" && data.items) {
+    if (data.transactionType === "EXPENSE" && data.items) {
       for (let i = 0; i < data.items.length; i++) {
         const item = data.items[i];
         if (item.accountId && item.amount) {
@@ -434,29 +432,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   onChange={onChange}
                   label="Date"
                   error={errors.date?.message}
-                />
-              )}
-            />
-          </View>
-
-          {/* Description */}
-          <View style={styles.section}>
-            <Controller
-              control={control}
-              name="description"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Description"
-                  placeholder="Transaction description"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                  style={{ minHeight: 80 }}
-                  error={errors.description?.message}
-                  isDark={isDark}
                 />
               )}
             />
@@ -662,17 +637,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
             {/* Total Amount */}
             {fields.length > 0 && (
-              <View
-                style={[
-                  styles.totalContainer,
-                  isDark && styles.totalContainerDark,
-                ]}
-              >
+              <View style={styles.totalContainer}>
                 <View style={styles.totalRow}>
                   <Typography
                     style={[styles.totalLabel, isDark && styles.totalLabelDark]}
                   >
-                    Total Amount
+                    Total Amount:
                   </Typography>
                   <Typography
                     style={[
@@ -680,15 +650,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       isDark && styles.totalAmountDark,
                     ]}
                   >
-                    {fields.reduce((sum, field, index) => {
-                      const amount = watch(`items.${index}.amount`) || 0;
-                      return sum + (typeof amount === "number" ? amount : 0);
-                    }, 0)}{" "}
+                    {formatNumber(
+                      fields.reduce((sum, field, index) => {
+                        const amount = watch(`items.${index}.amount`) || 0;
+                        return sum + (typeof amount === "number" ? amount : 0);
+                      }, 0)
+                    )}{" "}
                     {fields[0] && watch(`items.0.accountId`)
                       ? accounts.find(
                           (acc) => acc.id === watch(`items.0.accountId`)
-                        )?.currency || "$"
-                      : "$"}
+                        )?.currency
+                      : ""}
                   </Typography>
                 </View>
               </View>
@@ -948,29 +920,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           />
         </View>
 
-        {/* Description */}
-        <View style={styles.section}>
-          <Controller
-            control={control}
-            name="description"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Description"
-                placeholder="Transaction description"
-                value={value}
-                onChangeText={onChange}
-                onBlur={onBlur}
-                multiline
-                numberOfLines={5}
-                textAlignVertical="top"
-                style={{ minHeight: 80 }}
-                error={errors.description?.message}
-                isDark={isDark}
-              />
-            )}
-          />
-        </View>
-
         {/* Transaction Items */}
         <View style={styles.section}>
           <Typography
@@ -1084,7 +1033,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       {/* Show account balance for expense transactions */}
                       {selectedTransactionType === "EXPENSE" &&
                         value &&
-                        getBalanceText(value) && (
+                        getBalanceText(value, index) && (
                           <View style={styles.balanceContainer}>
                             <Typography
                               style={[
@@ -1092,7 +1041,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                                 isDark && styles.balanceTextDark,
                               ]}
                             >
-                              Available Balance: {getBalanceText(value)}
+                              Available Balance: {getBalanceText(value, index)}
                             </Typography>
                           </View>
                         )}
@@ -1109,7 +1058,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       selectedTransactionType === "EXPENSE" &&
                       accountId &&
                       value &&
-                      !hasSufficientBalance(accountId, value);
+                      !hasSufficientBalance(accountId, value, index);
 
                     return (
                       <View>
@@ -1138,7 +1087,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                               ]}
                             >
                               ⚠️ Insufficient funds. Available:{" "}
-                              {getBalanceText(accountId)}
+                              {getBalanceText(accountId, index)}
                             </Typography>
                           </View>
                         )}
@@ -1170,30 +1119,27 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
 
           {/* Total Amount */}
           {fields.length > 0 && (
-            <View
-              style={[
-                styles.totalContainer,
-                isDark && styles.totalContainerDark,
-              ]}
-            >
+            <View style={styles.totalContainer}>
               <View style={styles.totalRow}>
                 <Typography
                   style={[styles.totalLabel, isDark && styles.totalLabelDark]}
                 >
-                  Total Amount
+                  Total Amount:
                 </Typography>
                 <Typography
                   style={[styles.totalAmount, isDark && styles.totalAmountDark]}
                 >
-                  {fields.reduce((sum, field, index) => {
-                    const amount = watch(`items.${index}.amount`) || 0;
-                    return sum + (typeof amount === "number" ? amount : 0);
-                  }, 0)}{" "}
+                  {formatNumber(
+                    fields.reduce((sum, field, index) => {
+                      const amount = watch(`items.${index}.amount`) || 0;
+                      return sum + (typeof amount === "number" ? amount : 0);
+                    }, 0)
+                  )}{" "}
                   {fields[0] && watch(`items.0.accountId`)
                     ? accounts.find(
                         (acc) => acc.id === watch(`items.0.accountId`)
-                      )?.currency || "$"
-                    : "$"}
+                      )?.currency
+                    : ""}
                 </Typography>
               </View>
             </View>
@@ -1559,17 +1505,8 @@ const styles = StyleSheet.create({
     color: "#FFF",
   },
   totalContainer: {
-    backgroundColor: "#F9FAFB",
-    borderRadius: 8,
-    padding: 16,
     marginTop: 16,
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  totalContainerDark: {
-    backgroundColor: "#1d1e20ff",
-    borderColor: "#4B5563",
   },
   totalLabel: {
     fontSize: 14,
@@ -1589,8 +1526,9 @@ const styles = StyleSheet.create({
   },
   totalRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     alignItems: "center",
+    gap: 8,
   },
   balanceContainer: {
     marginTop: 8,
