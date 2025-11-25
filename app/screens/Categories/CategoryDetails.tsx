@@ -1,10 +1,4 @@
-import {
-  View,
-  StyleSheet,
-  useColorScheme,
-  ScrollView,
-  Alert,
-} from "react-native";
+import { View, StyleSheet, useColorScheme, ScrollView } from "react-native";
 import React, { useState, useEffect } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -12,6 +6,7 @@ import { Header } from "@/shared/components/ui/Header";
 import { Typography } from "@/shared/components/ui/Typography";
 import { Card } from "@/shared/components/ui/Card";
 import { Button } from "@/shared/components/ui/Button";
+import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useCategoryStore } from "@/store/categoryStore";
 import { Category } from "@/shared/types/category.types";
 
@@ -25,6 +20,7 @@ const CategoryDetailsScreen = () => {
 
   const [category, setCategory] = useState<Category | null>(null);
   const [loadingCategory, setLoadingCategory] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     loadCategory();
@@ -61,30 +57,25 @@ const CategoryDetailsScreen = () => {
   };
 
   const handleDeleteCategory = () => {
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
     if (!category) return;
 
-    Alert.alert(
-      "Delete Category",
-      `Are you sure you want to delete "${category.name}"? This action cannot be undone.`,
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteCategory(category.id);
-              router.back();
-            } catch (error: any) {
-              Alert.alert("Error", "Failed to delete category");
-            }
-          },
-        },
-      ]
-    );
+    try {
+      await deleteCategory(category.id);
+      setShowDeleteModal(false);
+      router.back();
+    } catch (error: any) {
+      setShowDeleteModal(false);
+      // Could show a toast or alert here, but since we removed Alert import, maybe use console or add back Alert
+      console.error("Failed to deactivate category:", error);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
   };
 
   if (loadingCategory) {
@@ -355,11 +346,29 @@ const CategoryDetailsScreen = () => {
               style={styles.deleteButton}
               disabled={isLoading}
             >
-              Delete Category
+              Deactivate Category
             </Button>
           )}
         </View>
       </ScrollView>
+
+      <ConfirmationModal
+        visible={showDeleteModal}
+        title="Deactivate Category"
+        message={
+          category && (category as any)._count?.TransactionItems > 0
+            ? `This category has ${
+                (category as any)._count?.TransactionItems
+              } transaction(s). Deactivating it will hide the category but keep existing transactions intact. Are you sure?`
+            : `Are you sure you want to deactivate "${category?.name}"? This will hide the category from new transactions.`
+        }
+        confirmText="Deactivate"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDark={isDark}
+        destructive={true}
+      />
     </View>
   );
 };

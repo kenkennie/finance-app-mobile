@@ -4,7 +4,6 @@ import {
   StyleSheet,
   SectionList,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from "react-native";
 import { Header } from "@/shared/components/ui/Header";
@@ -15,6 +14,7 @@ import { useCategoryStore } from "@/store/categoryStore";
 import { Typography } from "@/shared/components/ui/Typography";
 import { TabBar } from "@/shared/components/ui/TabBar";
 import { Card } from "@/shared/components/ui/Card";
+import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { Feather } from "@expo/vector-icons";
 import { Category } from "@/shared/types/category.types";
 import { useTheme } from "@/theme/context/ThemeContext";
@@ -52,6 +52,10 @@ const AllCategories = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null
+  );
 
   // Debounce search query
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
@@ -120,30 +124,44 @@ const AllCategories = () => {
 
   const handleEditCategory = (category: Category) => {
     router.push({
-      pathname: "/screens/Categories/EditCategory",
+      pathname: "/screens/Categories/CategoryDetails",
       params: { categoryId: category.id },
     });
   };
 
   const handleDeleteCategory = (category: Category) => {
-    Alert.alert(
-      "Delete Category",
-      `Are you sure you want to delete "${category.name}"? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await deleteCategory(category.id);
-            } catch (error) {
-              Alert.alert("Error", "Failed to delete category");
-            }
-          },
-        },
-      ]
-    );
+    setCategoryToDelete(category);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!categoryToDelete) return;
+
+    try {
+      await deleteCategory(categoryToDelete.id);
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+      // Refresh categories after deletion
+      const filters: any = {};
+      if (activeTab === "income") {
+        filters.type = "INCOME";
+      } else if (activeTab === "expenses") {
+        filters.type = "EXPENSE";
+      }
+      if (debouncedSearchQuery.trim()) {
+        filters.search = debouncedSearchQuery.trim();
+      }
+      getCategories(filters);
+    } catch (error) {
+      setShowDeleteModal(false);
+      setCategoryToDelete(null);
+      console.error("Failed to deactivate category:", error);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setCategoryToDelete(null);
   };
 
   const renderCategoryItem = ({ item: category }: { item: Category }) => (
@@ -323,6 +341,25 @@ const AllCategories = () => {
       <FAB
         icon="plus"
         onPress={() => router.push("/screens/Categories/AddCategory")}
+      />
+
+      <ConfirmationModal
+        visible={showDeleteModal}
+        title="Deactivate Category"
+        message={
+          categoryToDelete &&
+          (categoryToDelete as any)._count?.TransactionItems > 0
+            ? `This category has ${
+                (categoryToDelete as any)._count?.TransactionItems
+              } transaction(s). Deactivating it will hide the category but keep existing transactions intact. Are you sure?`
+            : `Are you sure you want to deactivate "${categoryToDelete?.name}"? This will hide the category from new transactions.`
+        }
+        confirmText="Deactivate"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDark={isDark}
+        destructive={true}
       />
     </View>
   );
