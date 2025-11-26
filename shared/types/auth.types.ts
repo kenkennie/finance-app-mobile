@@ -4,6 +4,7 @@ export interface User {
   fullName?: string;
   phoneNumber?: string;
   avatar?: string;
+  emailVerifiedAt?: Date;
 }
 
 export interface AuthState {

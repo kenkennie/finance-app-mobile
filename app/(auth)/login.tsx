@@ -26,7 +26,8 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { login, isLoading, clearError } = useAuthStore();
+  const { login, isLoading, clearError, checkOnboardingStatus } =
+    useAuthStore();
   const { showSuccess, showError } = useToastStore();
 
   const {
@@ -51,8 +52,20 @@ export default function LoginScreen() {
       const successMessage = await login(data.email, data.password);
       showSuccess(successMessage);
 
-      setTimeout(() => {
-        router.replace("/(tabs)");
+      // Check onboarding status after successful login
+      setTimeout(async () => {
+        try {
+          const onboardingStatus = await checkOnboardingStatus();
+
+          if (onboardingStatus.needsOnboarding) {
+            router.replace("/onboarding/welcome");
+          } else {
+            router.replace("/(tabs)");
+          }
+        } catch (error) {
+          // If onboarding check fails, go to main app
+          router.replace("/(tabs)");
+        }
       }, 100);
     } catch (error: any) {
       showError(error.message);
@@ -172,7 +185,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
+    paddingTop: 80, // Increased from spacing.xl (32) to 80 for status bar
+    paddingBottom: spacing.xl,
   },
   header: {
     alignItems: "center",

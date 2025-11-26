@@ -22,6 +22,7 @@ interface AuthResponseData {
     id: string;
     email: string;
     fullName?: string;
+    emailVerifiedAt: Date;
   };
   expires: string;
   message?: string;
@@ -50,12 +51,12 @@ export const authService = {
     const { data } = result;
 
     if (!data.access_token || !data.refresh_token || !data.user) {
-      throw new Error(data.message || "Invalid credentials!");
+      throw new Error(data.message);
     }
 
     return {
       data,
-      message: result.data.message || "Login successful!",
+      message: result.message,
     };
   },
 
@@ -76,12 +77,12 @@ export const authService = {
     const { data } = result;
 
     if (!data.access_token || !data.refresh_token || !data.user) {
-      throw new Error(data.message || "Registration failed!");
+      throw new Error(data.message);
     }
 
     return {
       data,
-      message: result.data.message || "Registration successful!",
+      message: result.message,
     };
   },
 
@@ -103,7 +104,7 @@ export const authService = {
     await SecureStore.deleteItemAsync("user");
 
     return {
-      message: result.message || "Logged out successful!",
+      message: result.message,
     };
   },
 
@@ -123,7 +124,7 @@ export const authService = {
       throw new Error(result.message);
     }
     return {
-      message: result.message || "Forgot password email sent successfully!",
+      message: result.message,
     };
   },
 
@@ -143,13 +144,69 @@ export const authService = {
     const { data } = result;
     return {
       data,
-      message: result.message || "Profile updated successfully",
+      message: result.message,
     };
   },
 
   async getCurrentUser(): Promise<User> {
     const response = await apiClient.get<ApiSuccessResponse<User>>("/auth/me");
     return extractResponseData(response);
+  },
+
+  async checkOnboardingStatus(): Promise<{
+    needsOnboarding: boolean;
+    hasCategories: boolean;
+    hasAccounts: boolean;
+  }> {
+    const response = await apiClient.get<
+      ApiSuccessResponse<{
+        needsOnboarding: boolean;
+        hasCategories: boolean;
+        hasAccounts: boolean;
+      }>
+    >("/user/onboarding-status");
+    return extractResponseData(response);
+  },
+
+  async completeOnboarding(): Promise<{
+    hasCategories: boolean;
+    hasAccounts: boolean;
+  }> {
+    console.log("🌐 Auth service: completeOnboarding called");
+    console.log("📡 Making API call to /user/complete-onboarding");
+    const response = await apiClient.post<
+      ApiSuccessResponse<{
+        hasCategories: boolean;
+        hasAccounts: boolean;
+      }>
+    >("/user/complete-onboarding");
+    console.log("🌐 Auth service: API response received", response);
+    const result = extractResponseData(response);
+    console.log("🌐 Auth service: extracted result", result);
+    return result;
+  },
+
+  async verifyEmail(
+    email: string,
+    code: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+    }>(
+      "/user/verify-email",
+      { email, code },
+      {
+        headers: {
+          "X-Skip-Token-Refresh": "true",
+        },
+      }
+    );
+
+    return response.data;
   },
 
   async handleTokenRefresh(): Promise<string> {

@@ -202,7 +202,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xl,
+    paddingTop: 80, // Increased from spacing.xl (32) to 80 for status bar
+    paddingBottom: spacing.xl,
   },
   header: {
     alignItems: "center",
