@@ -12,11 +12,13 @@ interface AuthState {
   successMessage: string | null;
 
   login: (email: string, password: string) => Promise<string>;
+  loginWithGoogle: () => Promise<string>;
   register: (
     fullName: string,
     email: string,
     password: string
   ) => Promise<string>;
+  registerWithGoogle: () => Promise<string>;
   editUser: (updatedUser: Partial<User>) => Promise<string>;
 
   logout: () => Promise<void>;
@@ -86,6 +88,74 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return message;
       } else {
         throw new Error("Login failed - no user data received");
+      }
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+
+      set({
+        error: errorMessage,
+        isLoading: false,
+        isAuthenticated: false,
+        user: null,
+      });
+
+      throw new Error(errorMessage);
+    }
+  },
+
+  loginWithGoogle: async () => {
+    try {
+      set({ isLoading: true, error: null, successMessage: null });
+
+      const { data, message } = await authService.loginWithGoogle();
+
+      if (data.user) {
+        set({
+          user: data.user,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+          successMessage: message,
+        });
+        await SecureStore.setItemAsync("access_token", data.access_token);
+        await SecureStore.setItemAsync("refresh_token", data.refresh_token);
+        await SecureStore.setItemAsync("user", JSON.stringify(data.user));
+
+        return message;
+      } else {
+        throw new Error("Google login failed - no user data received");
+      }
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+
+      set({
+        error: errorMessage,
+        isLoading: false,
+        isAuthenticated: false,
+        user: null,
+      });
+
+      throw new Error(errorMessage);
+    }
+  },
+
+  registerWithGoogle: async () => {
+    try {
+      set({ isLoading: true, error: null, successMessage: null });
+
+      const { data, message } = await authService.registerWithGoogle();
+
+      if (data.user) {
+        // For registration, don't auto-login - just show success message
+        set({
+          isLoading: false,
+          error: null,
+          successMessage: message,
+        });
+
+        return message;
+      } else {
+        throw new Error("Google registration failed - no user data received");
       }
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);

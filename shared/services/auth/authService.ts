@@ -14,6 +14,8 @@ import {
 import env from "@/config/env";
 import axios from "axios";
 import { ForgotPasswordDto } from "@/schemas/auth.schema";
+import * as AuthSession from "expo-auth-session";
+import Constants from "expo-constants";
 
 interface AuthResponseData {
   access_token: string;
@@ -34,6 +36,11 @@ interface RegisterResponseData {
 }
 
 export const authService = {
+  // Configure Google OAuth with expo-auth-session
+  configureGoogleSignIn: () => {
+    // Configuration is handled in the loginWithGoogle method
+  },
+
   async login(credentials: LoginCredentials): Promise<{
     data: AuthResponseData;
     message: string;
@@ -63,6 +70,142 @@ export const authService = {
       data,
       message: result.message,
     };
+  },
+
+  async loginWithGoogle(): Promise<{
+    data: AuthResponseData;
+    message: string;
+  }> {
+    try {
+      // Configure Google OAuth request with expo-auth-session
+      // Use backend callback URL for OAuth redirect
+      const backendUrl = env.apiUrl.replace("/api/v1", ""); // Remove /api/v1 to get base URL
+      const redirectUri = `${backendUrl}/auth/google/callback`;
+
+      const request = new AuthSession.AuthRequest({
+        clientId:
+          Constants.expoConfig?.extra?.GOOGLE_CLIENT_ID || "your-web-client-id",
+        scopes: ["openid", "profile", "email"],
+        responseType: AuthSession.ResponseType.Token,
+        redirectUri,
+        prompt: AuthSession.Prompt.SelectAccount, // Shows account selection popup
+        extraParams: {
+          access_type: "offline",
+        },
+      });
+
+      // This will open a native popup/modal for account selection
+      const result = await request.promptAsync({
+        authorizationEndpoint: "https://accounts.google.com/oauth/v2/auth",
+      });
+
+      if (result.type === "success" && result.params.id_token) {
+        // Send the Google ID token to our backend for verification
+        const response = await apiClient.post<
+          ApiSuccessResponse<AuthResponseData>
+        >(
+          "/auth/google/verify-token",
+          {
+            idToken: result.params.id_token,
+          },
+          {
+            headers: {
+              "X-Skip-Token-Refresh": "true",
+              "X-Client-Type": "mobile",
+            },
+          }
+        );
+
+        const apiResult = handleApiResponse(response);
+        if (!apiResult.success || !apiResult.data) {
+          throw new Error(apiResult.message);
+        }
+
+        const { data } = apiResult;
+
+        if (!data.access_token || !data.refresh_token || !data.user) {
+          throw new Error(data.message || "Google login failed");
+        }
+
+        return {
+          data,
+          message: apiResult.message,
+        };
+      } else {
+        throw new Error("Google authentication was cancelled");
+      }
+    } catch (error: any) {
+      console.error("Google OAuth error:", error);
+      throw new Error(error.message || "Google login failed");
+    }
+  },
+
+  async registerWithGoogle(): Promise<{
+    data: AuthResponseData;
+    message: string;
+  }> {
+    try {
+      // Configure Google OAuth request with expo-auth-session
+      // Use backend callback URL for OAuth redirect
+      const backendUrl = env.apiUrl.replace("/api/v1", ""); // Remove /api/v1 to get base URL
+      const redirectUri = `${backendUrl}/auth/google/callback`;
+
+      const request = new AuthSession.AuthRequest({
+        clientId:
+          Constants.expoConfig?.extra?.GOOGLE_CLIENT_ID || "your-web-client-id",
+        scopes: ["openid", "profile", "email"],
+        responseType: AuthSession.ResponseType.Token,
+        redirectUri,
+        prompt: AuthSession.Prompt.SelectAccount, // Shows account selection popup
+        extraParams: {
+          access_type: "offline",
+        },
+      });
+
+      // This will open a native popup/modal for account selection
+      const result = await request.promptAsync({
+        authorizationEndpoint: "https://accounts.google.com/oauth/v2/auth",
+      });
+
+      if (result.type === "success" && result.params.id_token) {
+        // Send the Google ID token to our backend for verification
+        const response = await apiClient.post<
+          ApiSuccessResponse<AuthResponseData>
+        >(
+          "/auth/google/verify-token",
+          {
+            idToken: result.params.id_token,
+          },
+          {
+            headers: {
+              "X-Skip-Token-Refresh": "true",
+              "X-Client-Type": "mobile",
+            },
+          }
+        );
+
+        const apiResult = handleApiResponse(response);
+        if (!apiResult.success || !apiResult.data) {
+          throw new Error(apiResult.message);
+        }
+
+        const { data } = apiResult;
+
+        if (!data.access_token || !data.refresh_token || !data.user) {
+          throw new Error(data.message || "Google registration failed");
+        }
+
+        return {
+          data,
+          message: apiResult.message,
+        };
+      } else {
+        throw new Error("Google authentication was cancelled");
+      }
+    } catch (error: any) {
+      console.error("Google OAuth error:", error);
+      throw new Error(error.message || "Google registration failed");
+    }
   },
 
   async register(credentials: RegisterCredentials): Promise<{

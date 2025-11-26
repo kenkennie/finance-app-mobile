@@ -21,14 +21,27 @@ import { Input } from "@/shared/components/ui/Input";
 import { colors } from "@/theme/colors";
 import { fontSize, spacing } from "@/theme/spacing";
 import { Button } from "@/shared/components/ui/Button";
+import { Ionicons } from "@expo/vector-icons";
+import * as SecureStore from "expo-secure-store";
+import { authService } from "@/shared/services/auth/authService";
 
 export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { login, isLoading, clearError, checkOnboardingStatus } =
-    useAuthStore();
+  const {
+    login,
+    loginWithGoogle,
+    isLoading,
+    clearError,
+    checkOnboardingStatus,
+  } = useAuthStore();
   const { showSuccess, showError } = useToastStore();
+
+  // Component initialization
+  useEffect(() => {
+    // Any initialization logic can go here
+  }, []);
 
   const {
     control,
@@ -72,6 +85,31 @@ export default function LoginScreen() {
     }
   };
 
+  const onGoogleLogin = async () => {
+    try {
+      const successMessage = await loginWithGoogle();
+      showSuccess(successMessage);
+
+      // Check onboarding status after successful login
+      setTimeout(async () => {
+        try {
+          const onboardingStatus = await checkOnboardingStatus();
+
+          if (onboardingStatus.needsOnboarding) {
+            router.replace("/onboarding/welcome");
+          } else {
+            router.replace("/(tabs)");
+          }
+        } catch (error) {
+          // If onboarding check fails, go to main app
+          router.replace("/(tabs)");
+        }
+      }, 100);
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -81,9 +119,9 @@ export default function LoginScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
+            {/* <View style={styles.logoContainer}>
               <Text style={styles.logo}>💰</Text>
-            </View>
+            </View> */}
             <Text style={[styles.title, isDark && styles.titleDark]}>
               Welcome Back
             </Text>
@@ -153,6 +191,41 @@ export default function LoginScreen() {
                 {isLoading ? "Signing In..." : "Sign In"}
               </Button>
 
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text
+                  style={[styles.dividerText, isDark && styles.dividerTextDark]}
+                >
+                  or
+                </Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity
+                onPress={onGoogleLogin}
+                disabled={isLoading}
+                style={[
+                  styles.googleButton,
+                  isDark && styles.googleButtonDark,
+                  isLoading && styles.googleButtonDisabled,
+                ]}
+              >
+                <Ionicons
+                  name="logo-google"
+                  size={20}
+                  color={isDark ? "#FFF" : colors.primary}
+                  style={styles.googleIcon}
+                />
+                <Text
+                  style={[
+                    styles.googleButtonText,
+                    isDark && styles.googleButtonTextDark,
+                  ]}
+                >
+                  {isLoading ? "Signing In..." : "Continue with Google"}
+                </Text>
+              </TouchableOpacity>
+
               <View style={styles.footer}>
                 <Text style={styles.footerText}>
                   Don&apos;t have an account?{" "}
@@ -184,8 +257,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: "center",
     paddingHorizontal: spacing.lg,
-    paddingTop: 80, // Increased from spacing.xl (32) to 80 for status bar
+    paddingTop: 0,
     paddingBottom: spacing.xl,
   },
   header: {
@@ -254,48 +328,55 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: "600",
   },
-
-  // Modal styles
-
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.backgroundSecondary,
-    paddingHorizontal: 20,
-  },
-  modalHeader: {
+  divider: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.gray[200],
+    marginVertical: spacing.md,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  modalCancel: {
-    fontSize: fontSize.md,
-    color: colors.text.secondary,
-  },
-  modalSave: {
-    fontSize: fontSize.md,
-    fontWeight: "600",
-    color: colors.primary,
-  },
-  modalContent: {
+  dividerLine: {
     flex: 1,
-    backgroundColor: colors.gray[100],
-    paddingHorizontal: 25,
-    paddingTop: 24,
+    height: 1,
+    backgroundColor: colors.gray[300],
   },
-  modalAvatarSection: {
+  dividerText: {
+    paddingHorizontal: spacing.md,
+    fontSize: fontSize.sm,
+    color: colors.text.secondary,
+    fontWeight: "500",
+  },
+  dividerTextDark: {
+    color: "#9CA3AF",
+  },
+  googleButton: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 32,
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: 8,
+    backgroundColor: colors.background,
   },
+  googleButtonDark: {
+    borderColor: "#374151",
+    backgroundColor: "#1F2937",
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleIcon: {
+    marginRight: spacing.sm,
+  },
+  googleButtonText: {
+    fontSize: fontSize.md,
+    fontWeight: "600",
+    color: colors.text.primary,
+  },
+  googleButtonTextDark: {
+    color: "#FFF",
+  },
+
   bottomPadding: {
     height: 20,
   },

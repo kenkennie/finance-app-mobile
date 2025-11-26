@@ -21,12 +21,14 @@ import { Input } from "@/shared/components/ui/Input";
 import { colors } from "@/theme/colors";
 import { fontSize, spacing } from "@/theme/spacing";
 import { useToastStore } from "@/store/toastStore";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function RegisterScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { register, isLoading, clearError } = useAuthStore();
+  const { register, registerWithGoogle, isLoading, clearError } =
+    useAuthStore();
   const { showSuccess, showError } = useToastStore();
 
   const {
@@ -79,6 +81,21 @@ export default function RegisterScreen() {
     }
   };
 
+  const onGoogleRegister = async () => {
+    try {
+      const successMessage = await registerWithGoogle();
+      showSuccess(successMessage);
+
+      // Reset form and redirect to login screen after successful Google registration
+      reset();
+      setTimeout(() => {
+        router.replace("/(auth)/login");
+      }, 1000);
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
@@ -91,9 +108,9 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.header}>
-            <View style={styles.logoContainer}>
+            {/* <View style={styles.logoContainer}>
               <Text style={styles.logo}>💰</Text>
-            </View>
+            </View> */}
             <Text style={[styles.title, isDark && styles.titleDark]}>
               Create Account
             </Text>
@@ -171,6 +188,41 @@ export default function RegisterScreen() {
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
 
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text
+                  style={[styles.dividerText, isDark && styles.dividerTextDark]}
+                >
+                  or
+                </Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              <TouchableOpacity
+                onPress={onGoogleRegister}
+                disabled={isLoading}
+                style={[
+                  styles.googleButton,
+                  isDark && styles.googleButtonDark,
+                  isLoading && styles.googleButtonDisabled,
+                ]}
+              >
+                <Ionicons
+                  name="logo-google"
+                  size={20}
+                  color={isDark ? "#FFF" : colors.primary}
+                  style={styles.googleIcon}
+                />
+                <Text
+                  style={[
+                    styles.googleButtonText,
+                    isDark && styles.googleButtonTextDark,
+                  ]}
+                >
+                  {isLoading ? "Creating Account..." : "Continue with Google"}
+                </Text>
+              </TouchableOpacity>
+
               <View style={styles.footer}>
                 <Text
                   style={[styles.footerText, isDark && styles.footerTextDark]}
@@ -202,8 +254,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: "center",
     paddingHorizontal: spacing.md,
-    paddingTop: 80, // Increased from spacing.xl (32) to 80 for status bar
+    paddingTop: 0,
     paddingBottom: spacing.xl,
   },
   header: {
@@ -310,5 +363,53 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xs,
     color: colors.error,
     marginTop: spacing.xs,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: spacing.md,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.gray[300],
+  },
+  dividerText: {
+    paddingHorizontal: spacing.md,
+    fontSize: fontSize.sm,
+    color: colors.text.secondary,
+    fontWeight: "500",
+  },
+  dividerTextDark: {
+    color: "#9CA3AF",
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.gray[300],
+    borderRadius: 8,
+    backgroundColor: colors.background,
+  },
+  googleButtonDark: {
+    borderColor: "#374151",
+    backgroundColor: "#1F2937",
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
+  googleIcon: {
+    marginRight: spacing.sm,
+  },
+  googleButtonText: {
+    fontSize: fontSize.md,
+    fontWeight: "600",
+    color: colors.text.primary,
+  },
+  googleButtonTextDark: {
+    color: "#FFF",
   },
 });

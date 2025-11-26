@@ -46,6 +46,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "GOOGLE_CLIENT_ID": "329864933818-5rg170gelqrm7hg5immnpf6ucs6578n0.apps.googleusercontent.com "
     }
   }
 }

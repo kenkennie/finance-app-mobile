@@ -44,17 +44,12 @@ export default function Index() {
       !isAuthenticated ||
       checkingOnboarding
     ) {
-      console.log("==========return==========================");
-      console.log("return");
-      console.log("===========return=========================");
-      console.log("====================================");
       console.log(
         isNavigationReady,
         isLoading,
         isAuthenticated,
         checkingOnboarding
       );
-      console.log("====================================");
       return; // Don't check yet
     }
 
@@ -62,9 +57,7 @@ export default function Index() {
       setCheckingOnboarding(true);
       try {
         const status = await checkOnboardingStatus();
-        console.log("====================================");
-        console.log(status);
-        console.log("====================================");
+
         setOnboardingStatus(status);
       } catch (error) {
         console.error("Failed to check onboarding status:", error);
