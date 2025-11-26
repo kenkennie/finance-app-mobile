@@ -112,9 +112,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (data.user) {
+        // Don't auto-login after registration - redirect to login screen
         set({
-          user: data.user,
-          isAuthenticated: true,
           isLoading: false,
           error: null,
           successMessage: message,

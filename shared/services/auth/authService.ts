@@ -22,10 +22,15 @@ interface AuthResponseData {
     id: string;
     email: string;
     fullName?: string;
-    emailVerifiedAt: Date;
   };
   expires: string;
   message?: string;
+}
+
+interface RegisterResponseData {
+  userId: string;
+  email: string;
+  fullName: string;
 }
 
 export const authService = {
@@ -64,24 +69,32 @@ export const authService = {
     data: AuthResponseData;
     message: string;
   }> {
-    const response = await apiClient.post<ApiSuccessResponse<AuthResponseData>>(
-      "/auth/register",
-      credentials
-    );
+    const response = await apiClient.post<
+      ApiSuccessResponse<RegisterResponseData>
+    >("/auth/register", credentials);
     const result = handleApiResponse(response);
 
     if (!result.success || !result.data) {
-      throw new Error(result.message);
+      throw new Error(result.errors?.join(", ") || result.message);
     }
 
     const { data } = result;
 
-    if (!data.access_token || !data.refresh_token || !data.user) {
-      throw new Error(data.message);
-    }
+    // Transform registration response to match expected AuthResponseData format
+    const transformedData: AuthResponseData = {
+      access_token: "", // Registration doesn't return tokens
+      refresh_token: "",
+      user: {
+        id: data.userId,
+        email: data.email,
+        fullName: data.fullName,
+      },
+      expires: "",
+      message: result.message,
+    };
 
     return {
-      data,
+      data: transformedData,
       message: result.message,
     };
   },

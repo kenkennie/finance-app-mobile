@@ -1,15 +1,10 @@
-import React, { useEffect } from "react";
-import {
-  View,
-  ScrollView,
-  StyleSheet,
-  useColorScheme,
-  Alert,
-} from "react-native";
+import React, { useEffect, useState } from "react";
+import { View, ScrollView, StyleSheet, useColorScheme } from "react-native";
 import { useRouter } from "expo-router";
 import { Header } from "@/shared/components/ui/Header";
 import { UserProfileCard } from "@/shared/components/ui/UserProfileCard";
 import { MenuItem } from "@/shared/components/ui/MenuItem";
+import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useAuthStore } from "@/store/authStore";
 import { useToastStore } from "@/store/toastStore";
 
@@ -21,39 +16,37 @@ const ProfileScreen = () => {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const { showSuccess, showError } = useToastStore();
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isLoggingOut) {
       router.replace("/(auth)/login");
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isLoggingOut]);
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
-        {
-          text: "Logout",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await logout();
+    setLogoutModalVisible(true);
+  };
 
-              showSuccess("Logged out successful!");
-            } catch (error: any) {
-              // ✅ Show error toast if logout fails
-              showError(error.message || "Logout failed");
-            }
-          },
-        },
-      ],
-      { cancelable: true }
-    );
+  const handleConfirmLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      setLogoutModalVisible(false);
+      await logout();
+      showSuccess("Logged out successful!");
+      // Navigate to login after logout
+      router.replace("/(auth)/login");
+    } catch (error: any) {
+      // ✅ Show error toast if logout fails
+      showError(error.message || "Logout failed");
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  const handleCancelLogout = () => {
+    setLogoutModalVisible(false);
   };
 
   return (
@@ -64,8 +57,7 @@ const ProfileScreen = () => {
         rightIcons={[
           {
             icon: "edit-3",
-            onPress: () =>
-              router.navigate("/screens/profile/EditProfileScreen"),
+            onPress: () => router.back(),
           },
         ]}
       />
@@ -119,6 +111,17 @@ const ProfileScreen = () => {
           />
         </View>
       </ScrollView>
+
+      <ConfirmationModal
+        visible={logoutModalVisible}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        onConfirm={handleConfirmLogout}
+        onCancel={handleCancelLogout}
+        isDark={isDark}
+        destructive
+      />
     </View>
   );
 };

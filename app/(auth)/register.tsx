@@ -26,7 +26,7 @@ export default function RegisterScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const router = useRouter();
-  const { register, isLoading, isAuthenticated, clearError } = useAuthStore();
+  const { register, isLoading, clearError } = useAuthStore();
   const { showSuccess, showError } = useToastStore();
 
   const {
@@ -43,12 +43,6 @@ export default function RegisterScreen() {
       // confirmPassword: "",
     },
   });
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/(tabs)");
-    }
-  }, [isAuthenticated]);
 
   useEffect(() => {
     return () => clearError();
@@ -70,9 +64,16 @@ export default function RegisterScreen() {
         cleanedData.password
       );
 
-      // ✅ Show success toast with backend message
-      showSuccess(successMessage || "Account created successfully!");
+      // ✅ Reset form immediately after successful registration
       reset();
+
+      // ✅ Show success toast with backend message
+      showSuccess(successMessage);
+
+      // ✅ Redirect to login screen after a delay to show the reset form
+      setTimeout(() => {
+        router.replace("/(auth)/login");
+      }, 1000);
     } catch (error: any) {
       showError(error.message);
     }
