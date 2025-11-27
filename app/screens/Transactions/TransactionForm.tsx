@@ -20,7 +20,10 @@ import { useTheme } from "@/theme/context/ThemeContext";
 import { useRouter } from "expo-router";
 import TransactionTypeSelector from "@/shared/components/ui/TransactionTypeSelector";
 import DatePicker from "@/shared/components/ui/pickers/DatePicker";
-import SearchableDropdown from "@/shared/components/ui/SearchableDropdown";
+import {
+  SearchableDropdown,
+  QuickAddCategoryModal,
+} from "@/shared/components/ui";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useAccountStore } from "@/store/accountStore";
 import { useTransactionStatusStore } from "@/store/transactionStatusStore";
@@ -87,6 +90,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [balanceLoading, setBalanceLoading] = useState<Record<string, boolean>>(
     {}
   );
+
+  // State for quick add category modal
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null);
 
   // Create mode form
   const createForm = useForm<CreateTransactionDto>({
@@ -269,6 +276,23 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     const account = accounts.find((acc) => acc.id === accountId);
     const currency = account?.currency;
     return `${currency}${effectiveBalance}`;
+  };
+
+  // Handler for when a new category is created
+  const handleCategoryCreated = (categoryId: string) => {
+    // The category is already added to the store by the modal
+    // We just need to refresh categories to get the latest list
+    getCategories();
+
+    // Auto-select the newly created category for the current item
+    if (currentItemIndex !== null) {
+      if (mode === "create") {
+        createForm.setValue(`items.${currentItemIndex}.categoryId`, categoryId);
+      } else {
+        editForm.setValue(`items.${currentItemIndex}.categoryId`, categoryId);
+      }
+      setCurrentItemIndex(null);
+    }
   };
 
   // Reset edit form when initialData changes
@@ -506,10 +530,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                         error={errors.items?.[index]?.categoryId?.message}
                         addNewLabel="+ Add New Category"
                         onAddNew={() => {
-                          Alert.alert(
-                            "Add Category",
-                            "Navigate to add category screen"
-                          );
+                          setCurrentItemIndex(index);
+                          setShowAddCategoryModal(true);
                         }}
                       />
                     )}
@@ -703,6 +725,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
               : submitButtonText || "Create Transaction"}
           </Button>
         </View>
+
+        {/* Quick Add Category Modal */}
+        <QuickAddCategoryModal
+          visible={showAddCategoryModal}
+          onClose={() => {
+            setShowAddCategoryModal(false);
+            setCurrentItemIndex(null);
+          }}
+          transactionType={selectedTransactionType || "EXPENSE"}
+          onCategoryCreated={handleCategoryCreated}
+        />
       </KeyboardAvoidingView>
     );
   }
@@ -989,10 +1022,9 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       error={errors.items?.[index]?.categoryId?.message}
                       addNewLabel="+ Add New Category"
                       onAddNew={() => {
-                        Alert.alert(
-                          "Add Category",
-                          "Navigate to add category screen"
-                        );
+                        console.log("Add new category clicked for item", index);
+                        setCurrentItemIndex(index);
+                        setShowAddCategoryModal(true);
                       }}
                     />
                   )}
@@ -1180,6 +1212,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           {isLoading ? "Updating..." : submitButtonText || "Update Transaction"}
         </Button>
       </View>
+
+      {/* Quick Add Category Modal */}
+      <QuickAddCategoryModal
+        visible={showAddCategoryModal}
+        onClose={() => {
+          setShowAddCategoryModal(false);
+          setCurrentItemIndex(null);
+        }}
+        transactionType={selectedTransactionType || "EXPENSE"}
+        onCategoryCreated={handleCategoryCreated}
+      />
     </KeyboardAvoidingView>
   );
 };

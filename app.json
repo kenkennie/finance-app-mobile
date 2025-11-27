@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.kennivate.expensetracker"
@@ -44,8 +44,7 @@
       "expo-secure-store"
     ],
     "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
+      "typedRoutes": true
     },
     "extra": {
       "GOOGLE_CLIENT_ID": "329864933818-5rg170gelqrm7hg5immnpf6ucs6578n0.apps.googleusercontent.com "

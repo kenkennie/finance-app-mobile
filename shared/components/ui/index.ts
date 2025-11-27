@@ -25,3 +25,6 @@ export { default as DatePicker } from "./pickers/DatePicker";
 
 // Dropdowns
 export { default as SearchableDropdown } from "./SearchableDropdown";
+
+// Modals
+export { default as QuickAddCategoryModal } from "./QuickAddCategoryModal";

@@ -14,7 +14,7 @@ import { borderRadius, shadows, spacing } from "@/theme/spacing";
 import {
   exportToCSV,
   exportToExcel,
-  exportToPDF,
+  // exportToPDF,
   shareFile,
 } from "@/shared/utils/exportUtils";
 
@@ -32,22 +32,15 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   dateRange,
 }) => {
   const [loading, setLoading] = useState(false);
-  const [options, setOptions] = useState({
-    includeSummary: true,
-    groupByCategory: true,
-    includeCharts: false,
-  });
   const [exportSuccess, setExportSuccess] = useState(false);
   const [exportedFile, setExportedFile] = useState("");
 
-  const handleExport = async (format: "pdf" | "excel" | "csv") => {
+  const handleExport = async (format: "excel" | "csv") => {
     setLoading(true);
     try {
       let filePath = "";
 
-      if (format === "pdf") {
-        filePath = await exportToPDF(transactions, options, dateRange);
-      } else if (format === "excel") {
+      if (format === "excel") {
         filePath = await exportToExcel(transactions, dateRange);
       } else {
         filePath = await exportToCSV(transactions);
@@ -184,36 +177,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
             <TouchableOpacity
               style={styles.formatOption}
-              onPress={() => handleExport("pdf")}
-              disabled={loading}
-            >
-              <View style={styles.formatLeft}>
-                <Typography variant="h3">📄</Typography>
-                <View style={styles.formatInfo}>
-                  <Typography
-                    variant="body1"
-                    weight="semibold"
-                  >
-                    PDF Report
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    color={colors.gray[500]}
-                  >
-                    Professional formatted report
-                  </Typography>
-                </View>
-              </View>
-              <Typography
-                variant="body1"
-                color={colors.gray[400]}
-              >
-                ›
-              </Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.formatOption}
               onPress={() => handleExport("excel")}
               disabled={loading}
             >
@@ -270,70 +233,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               >
                 ›
               </Typography>
-            </TouchableOpacity>
-
-            <Typography
-              variant="body1"
-              weight="semibold"
-              style={styles.sectionTitle}
-            >
-              Options (PDF only)
-            </Typography>
-
-            <TouchableOpacity
-              style={styles.optionRow}
-              onPress={() =>
-                setOptions({
-                  ...options,
-                  includeSummary: !options.includeSummary,
-                })
-              }
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  options.includeSummary && styles.checkboxActive,
-                ]}
-              >
-                {options.includeSummary && (
-                  <Typography
-                    variant="body2"
-                    color={colors.text.white}
-                  >
-                    ✓
-                  </Typography>
-                )}
-              </View>
-              <Typography variant="body1">
-                Include summary statistics
-              </Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.optionRow}
-              onPress={() =>
-                setOptions({
-                  ...options,
-                  groupByCategory: !options.groupByCategory,
-                })
-              }
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  options.groupByCategory && styles.checkboxActive,
-                ]}
-              >
-                {options.groupByCategory && (
-                  <Typography
-                    variant="body2"
-                    color={colors.text.white}
-                  >
-                    ✓
-                  </Typography>
-                )}
-              </View>
-              <Typography variant="body1">Group by category</Typography>
             </TouchableOpacity>
           </View>
 
@@ -414,25 +313,6 @@ const styles = StyleSheet.create({
   },
   formatInfo: {
     flex: 1,
-  },
-  optionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.gray[300],
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkboxActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   loadingOverlay: {
     position: "absolute",
