@@ -28,3 +28,4 @@ export { default as SearchableDropdown } from "./SearchableDropdown";
 
 // Modals
 export { default as QuickAddCategoryModal } from "./QuickAddCategoryModal";
+export { default as QuickAddAccountModal } from "./QuickAddAccountModal";

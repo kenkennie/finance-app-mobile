@@ -23,6 +23,7 @@ import DatePicker from "@/shared/components/ui/pickers/DatePicker";
 import {
   SearchableDropdown,
   QuickAddCategoryModal,
+  QuickAddAccountModal,
 } from "@/shared/components/ui";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useAccountStore } from "@/store/accountStore";
@@ -94,6 +95,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   // State for quick add category modal
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [currentItemIndex, setCurrentItemIndex] = useState<number | null>(null);
+
+  // State for quick add account modal
+  const [showAddAccountModal, setShowAddAccountModal] = useState(false);
+  const [currentAccountItemIndex, setCurrentAccountItemIndex] = useState<
+    number | null
+  >(null);
 
   // Create mode form
   const createForm = useForm<CreateTransactionDto>({
@@ -292,6 +299,29 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         editForm.setValue(`items.${currentItemIndex}.categoryId`, categoryId);
       }
       setCurrentItemIndex(null);
+    }
+  };
+
+  // Handler for when a new account is created
+  const handleAccountCreated = (accountId: string) => {
+    // The account is already added to the store by the modal
+    // We just need to refresh accounts to get the latest list
+    getAccounts();
+
+    // Auto-select the newly created account for the current item
+    if (currentAccountItemIndex !== null) {
+      if (mode === "create") {
+        createForm.setValue(
+          `items.${currentAccountItemIndex}.accountId`,
+          accountId
+        );
+      } else {
+        editForm.setValue(
+          `items.${currentAccountItemIndex}.accountId`,
+          accountId
+        );
+      }
+      setCurrentAccountItemIndex(null);
     }
   };
 
@@ -563,10 +593,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                           error={errors.items?.[index]?.accountId?.message}
                           addNewLabel="+ Add New Account"
                           onAddNew={() => {
-                            Alert.alert(
-                              "Add Account",
-                              "Navigate to add account screen"
-                            );
+                            setCurrentAccountItemIndex(index);
+                            setShowAddAccountModal(true);
                           }}
                         />
                         {/* Show account balance for expense transactions */}
@@ -735,6 +763,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
           }}
           transactionType={selectedTransactionType || "EXPENSE"}
           onCategoryCreated={handleCategoryCreated}
+        />
+
+        {/* Quick Add Account Modal */}
+        <QuickAddAccountModal
+          visible={showAddAccountModal}
+          onClose={() => {
+            setShowAddAccountModal(false);
+            setCurrentAccountItemIndex(null);
+          }}
+          onAccountCreated={handleAccountCreated}
         />
       </KeyboardAvoidingView>
     );
@@ -1056,10 +1094,8 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                         error={errors.items?.[index]?.accountId?.message}
                         addNewLabel="+ Add New Account"
                         onAddNew={() => {
-                          Alert.alert(
-                            "Add Account",
-                            "Navigate to add account screen"
-                          );
+                          setCurrentAccountItemIndex(index);
+                          setShowAddAccountModal(true);
                         }}
                       />
                       {/* Show account balance for expense transactions */}
@@ -1222,6 +1258,16 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         }}
         transactionType={selectedTransactionType || "EXPENSE"}
         onCategoryCreated={handleCategoryCreated}
+      />
+
+      {/* Quick Add Account Modal */}
+      <QuickAddAccountModal
+        visible={showAddAccountModal}
+        onClose={() => {
+          setShowAddAccountModal(false);
+          setCurrentAccountItemIndex(null);
+        }}
+        onAccountCreated={handleAccountCreated}
       />
     </KeyboardAvoidingView>
   );
