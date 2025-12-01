@@ -4,6 +4,7 @@ import {
   useColorScheme,
   ActivityIndicator,
   FlatList,
+  RefreshControl,
 } from "react-native";
 import React, { useState, useEffect, useRef } from "react";
 import { Header } from "@/shared/components/ui/Header";
@@ -18,6 +19,7 @@ import { Card } from "@/shared/components/ui/Card";
 import SimpleFilterBottomSheet from "@/shared/components/ui/filters/simpleFilterBottomSheet";
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { Transaction } from "@/shared/types/filter.types";
+import { colors } from "@/theme/colors";
 
 interface HeaderItem {
   type: "header";
@@ -441,11 +443,13 @@ const AllTransactions = () => {
     ];
   });
 
+  const handleRefresh = async () => {
+    await getTransactions();
+  };
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
       <Header
         title="All Transactions"
-        showBack
         onBackPress={() => router.back()}
         isDark={isDark}
       />
@@ -471,6 +475,13 @@ const AllTransactions = () => {
           item.type === "header"
             ? `header-${item.dateString}`
             : `transaction-${item.transaction.id}`
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={handleRefresh}
+            tintColor={isDark ? colors.text.white : colors.text.primary}
+          />
         }
         renderItem={({ item }) => {
           if (item.type === "header") {

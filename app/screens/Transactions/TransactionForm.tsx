@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Alert,
   StatusBar,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -41,7 +40,7 @@ import { formatNumber } from "@/shared/utils/formatUtils";
 const StatusSelector: React.FC<{
   value?: string;
   onChange: (value: string) => void;
-  options: Array<{ id: string; label: string; icon: string; color: string }>;
+  options: { id: string; label: string; icon: string; color: string }[];
   error?: string;
   isDark?: boolean;
 }> = ({ value, onChange, options, error, isDark = false }) => {
