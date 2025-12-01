@@ -14,16 +14,41 @@ export const colors = {
   info: "#3B82F6",
   infoLight: "#DBEAFE",
 
+  // Light mode
+  light: {
+    background: "#ffffff",
+    backgroundSecondary: "#f8fafc",
+    text: {
+      primary: "#0f172a",
+      secondary: "#64748b",
+      tertiary: "#94a3b8",
+      white: "#FFFFFF",
+    },
+    border: "#e2e8f0",
+  },
+
+  // Dark mode
+  dark: {
+    background: "#1C1C1E",
+    backgroundSecondary: "#1e293b",
+    text: {
+      primary: "#f8fafc",
+      secondary: "#cbd5e1",
+      tertiary: "#94a3b8",
+      white: "#FFFFFF",
+    },
+    border: "#334155",
+  },
+
+  // Legacy (for backward compatibility)
   background: "#ffffff",
   backgroundSecondary: "#f8fafc",
-
   text: {
     primary: "#0f172a",
     secondary: "#64748b",
     tertiary: "#94a3b8",
     white: "#FFFFFF",
   },
-
   border: "#e2e8f0",
 
   gray: {

@@ -34,9 +34,57 @@ export const budgetService = {
     };
   },
 
-  async getBudgets(): Promise<{ data: Budget[] }> {
-    const response = await apiClient.get<{ data: Budget[] }>("/budgets");
-    return response.data;
+  async getBudgets(filters?: {
+    isActive?: boolean;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<{
+    data: Budget[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+
+    if (filters?.isActive !== undefined) {
+      queryParams.append("isActive", filters.isActive.toString());
+    }
+    if (filters?.startDate) {
+      queryParams.append("startDate", filters.startDate);
+    }
+    if (filters?.endDate) {
+      queryParams.append("endDate", filters.endDate);
+    }
+    if (filters?.search) {
+      queryParams.append("search", filters.search);
+    }
+    if (filters?.limit) {
+      queryParams.append("limit", filters.limit.toString());
+    }
+    if (filters?.page) {
+      queryParams.append("page", filters.page.toString());
+    }
+
+    const url = `/budgets${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
+    const response = await apiClient.get<{
+      data: Budget[];
+      meta: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      };
+    }>(url);
+
+    return response.data.data;
   },
 
   async getBudgetById(id: string): Promise<Budget> {

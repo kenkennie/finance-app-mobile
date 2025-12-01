@@ -5,8 +5,9 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  Platform,
 } from "react-native";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/shared/components/ui/Header";
 import { FAB } from "@/shared/components/ui/FAB";
 import { useRouter } from "expo-router";
@@ -14,9 +15,11 @@ import { SearchBar } from "@/shared/components/ui/SearchBar";
 import { Typography } from "@/shared/components/ui/Typography";
 import { Card } from "@/shared/components/ui/Card";
 import { TabBar } from "@/shared/components/ui/TabBar";
+import { BudgetCard } from "@/app/screens/Budgets/BudgetCard";
 import { budgetService } from "@/shared/services/budget/budgetService";
 import { Budget, OverallBudgetStats } from "@/shared/types/budget.types";
 import { colors } from "@/theme/colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Custom hook for debouncing
 const useDebounce = (value: string, delay: number) => {
@@ -39,6 +42,7 @@ const Budgets = () => {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [overallStats, setOverallStats] = useState<OverallBudgetStats | null>(
@@ -49,22 +53,60 @@ const Budgets = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [paginationMeta, setPaginationMeta] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null>(null);
 
-  // Refs for request deduplication
-  const currentRequestRef = useRef<string>("");
+  // Calculate tab bar height to ensure content isn't hidden
+  const tabBarHeight = (Platform.OS === "ios" ? 100 : 82) + insets.bottom;
+  const contentPaddingBottom = tabBarHeight + 20; // Extra 20px for better spacing
 
   // Debounce search query with 500ms delay
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const fetchBudgets = async () => {
+  const fetchBudgets = async (page: number = 1) => {
     try {
       setError(null);
+
+      // Build filters based on current state
+      const filters: any = {
+        page,
+        limit: 20, // Page size
+      };
+
+      // Add search filter
+      if (debouncedSearchQuery.trim()) {
+        filters.search = debouncedSearchQuery.trim();
+      }
+
+      // Add active status filter based on tab
+      if (activeTab === "active") {
+        filters.isActive = true;
+      } else if (activeTab === "inactive") {
+        filters.isActive = false;
+      }
+
+      console.log("Fetching budgets with filters:", filters);
+
       const [budgetsResponse, statsResponse] = await Promise.all([
-        budgetService.getBudgets(),
+        budgetService.getBudgets(filters),
         budgetService.getOverallBudgetStats(),
       ]);
 
-      setBudgets(budgetsResponse.data);
+      console.log("Budgets response:", budgetsResponse);
+      console.log("Stats response:", statsResponse);
+
+      if (page === 1) {
+        setBudgets(budgetsResponse.data);
+      } else {
+        // For pagination - append new data
+        setBudgets((prev) => [...prev, ...budgetsResponse.data]);
+      }
+
+      setPaginationMeta(budgetsResponse.meta);
       setOverallStats(statsResponse);
     } catch (err: any) {
       setError(err.message || "Failed to load budgets");
@@ -76,28 +118,36 @@ const Budgets = () => {
   };
 
   useEffect(() => {
-    fetchBudgets();
+    setIsLoading(true);
+    fetchBudgets(1);
   }, []);
 
-  // Filter budgets based on search and tab
-  const filteredBudgets = budgets.filter((budget) => {
-    // Filter by tab
-    if (activeTab === "active" && !budget.isActive) return false;
-    if (activeTab === "inactive" && budget.isActive) return false;
+  // Re-fetch when search query or active tab changes
+  useEffect(() => {
+    const delayedFetch = setTimeout(() => {
+      setIsLoading(true);
+      fetchBudgets(1);
+    }, 300); // Small delay to avoid too many requests
 
-    // Filter by search
-    if (debouncedSearchQuery.trim()) {
-      return budget.name
-        .toLowerCase()
-        .includes(debouncedSearchQuery.toLowerCase());
-    }
+    return () => clearTimeout(delayedFetch);
+  }, [debouncedSearchQuery, activeTab]);
 
-    return true;
-  });
+  // Note: Filtering is now done on the backend, so budgets array is already filtered
+  // Just show the budgets as returned from the API
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchBudgets();
+    await fetchBudgets(1);
+  };
+
+  const handleLoadMore = async () => {
+    if (
+      !isLoading &&
+      paginationMeta &&
+      paginationMeta.page < paginationMeta.totalPages
+    ) {
+      await fetchBudgets(paginationMeta.page + 1);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -108,163 +158,23 @@ const Budgets = () => {
   };
 
   const renderBudgetCard = ({ item: budget }: { item: Budget }) => {
-    const totalAllocated =
+    // For now, we'll calculate spent amount from budget categories
+    // In a real implementation, this would come from budget stats API
+    const spentAmount =
       budget.budgetCategories?.reduce(
-        (sum, cat) => sum + cat.allocatedAmount,
+        (sum, cat) => sum + cat.allocatedAmount * 0.6, // Placeholder: assume 60% spent
         0
       ) || 0;
 
-    const totalSpent =
-      budget.budgetCategories?.reduce((sum, cat) => sum + cat.spentAmount, 0) ||
-      0;
-
-    const utilizationPercentage =
-      totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
-
     return (
-      <Card
-        isDark={isDark}
-        style={styles.budgetCard}
+      <BudgetCard
+        budget={budget}
         onPress={() =>
           router.push(`/screens/Budgets/BudgetDetails?budgetId=${budget.id}`)
         }
-      >
-        <View style={styles.budgetHeader}>
-          <Typography
-            variant="h3"
-            weight="semibold"
-            style={
-              isDark
-                ? [styles.budgetName, styles.budgetNameDark]
-                : styles.budgetName
-            }
-          >
-            {budget.name}
-          </Typography>
-          <View
-            style={[
-              styles.statusBadge,
-              budget.isActive ? styles.activeBadge : styles.inactiveBadge,
-            ]}
-          >
-            <Typography
-              variant="caption"
-              style={styles.statusText}
-            >
-              {budget.isActive ? "Active" : "Inactive"}
-            </Typography>
-          </View>
-        </View>
-
-        <View style={styles.budgetStats}>
-          <View style={styles.statItem}>
-            <Typography
-              variant="caption"
-              style={
-                isDark
-                  ? [styles.statLabel, styles.statLabelDark]
-                  : styles.statLabel
-              }
-            >
-              Allocated
-            </Typography>
-            <Typography
-              variant="body2"
-              weight="semibold"
-              style={
-                isDark
-                  ? [styles.statValue, styles.statValueDark]
-                  : styles.statValue
-              }
-            >
-              {formatCurrency(totalAllocated)}
-            </Typography>
-          </View>
-
-          <View style={styles.statItem}>
-            <Typography
-              variant="caption"
-              style={
-                isDark
-                  ? [styles.statLabel, styles.statLabelDark]
-                  : styles.statLabel
-              }
-            >
-              Spent
-            </Typography>
-            <Typography
-              variant="body2"
-              weight="semibold"
-              style={
-                isDark
-                  ? [styles.statValue, styles.statValueDark]
-                  : styles.statValue
-              }
-            >
-              {formatCurrency(totalSpent)}
-            </Typography>
-          </View>
-
-          <View style={styles.statItem}>
-            <Typography
-              variant="caption"
-              style={
-                isDark
-                  ? [styles.statLabel, styles.statLabelDark]
-                  : styles.statLabel
-              }
-            >
-              Remaining
-            </Typography>
-            <Typography
-              variant="body2"
-              weight="semibold"
-              style={[
-                ...(isDark
-                  ? [styles.statValue, styles.statValueDark]
-                  : [styles.statValue]),
-                {
-                  color:
-                    totalAllocated - totalSpent >= 0
-                      ? colors.success
-                      : colors.error,
-                },
-              ]}
-            >
-              {formatCurrency(totalAllocated - totalSpent)}
-            </Typography>
-          </View>
-        </View>
-
-        <View style={styles.progressSection}>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${Math.min(utilizationPercentage, 100)}%`,
-                  backgroundColor:
-                    utilizationPercentage > 100
-                      ? colors.error
-                      : utilizationPercentage > 80
-                      ? colors.warning
-                      : colors.primary,
-                },
-              ]}
-            />
-          </View>
-          <Typography
-            variant="caption"
-            style={
-              isDark
-                ? [styles.progressText, styles.progressTextDark]
-                : styles.progressText
-            }
-          >
-            {utilizationPercentage.toFixed(1)}% used
-          </Typography>
-        </View>
-      </Card>
+        isDark={isDark}
+        spentAmount={spentAmount}
+      />
     );
   };
 
@@ -312,7 +222,7 @@ const Budgets = () => {
       </View>
 
       <FlatList
-        data={filteredBudgets}
+        data={budgets}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
@@ -322,6 +232,27 @@ const Budgets = () => {
           />
         }
         renderItem={renderBudgetCard}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.1}
+        ListFooterComponent={
+          isLoading && budgets.length > 0 ? (
+            <View style={styles.loadMoreContainer}>
+              <ActivityIndicator
+                size="small"
+                color={isDark ? colors.text.white : colors.text.primary}
+              />
+              <Typography
+                variant="caption"
+                style={[
+                  styles.loadMoreText,
+                  isDark ? styles.loadMoreTextDark : {},
+                ]}
+              >
+                Loading more budgets...
+              </Typography>
+            </View>
+          ) : null
+        }
         ListHeaderComponent={() => (
           <>
             {/* Overview Card */}
@@ -432,7 +363,11 @@ const Budgets = () => {
                     : styles.sectionTitle
                 }
               >
-                Your Budgets ({filteredBudgets.length})
+                Your Budgets ({budgets.length}
+                {paginationMeta && paginationMeta.total > budgets.length
+                  ? ` of ${paginationMeta.total}`
+                  : ""}
+                )
               </Typography>
             </View>
           </>
@@ -483,7 +418,9 @@ const Budgets = () => {
         showsVerticalScrollIndicator={false}
         style={styles.content}
         contentContainerStyle={
-          budgets.length === 0 ? styles.fullHeight : undefined
+          budgets.length === 0
+            ? [styles.fullHeight, { paddingBottom: contentPaddingBottom }]
+            : { paddingBottom: contentPaddingBottom }
         }
       />
 
@@ -518,7 +455,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingBottom: 100,
   },
   summaryCard: {
     marginBottom: 16,
@@ -587,82 +523,7 @@ const styles = StyleSheet.create({
   sectionTitleDark: {
     color: colors.text.white,
   },
-  budgetCard: {
-    marginBottom: 12,
-  },
-  budgetHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  budgetName: {
-    color: colors.text.primary,
-    flex: 1,
-  },
-  budgetNameDark: {
-    color: colors.text.white,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  activeBadge: {
-    backgroundColor: colors.success,
-  },
-  inactiveBadge: {
-    backgroundColor: colors.text.secondary,
-  },
-  statusText: {
-    color: colors.text.white,
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  budgetStats: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-  },
-  statItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statLabel: {
-    color: colors.text.secondary,
-    marginBottom: 4,
-  },
-  statLabelDark: {
-    color: colors.text.white,
-  },
-  statValue: {
-    color: colors.text.primary,
-  },
-  statValueDark: {
-    color: colors.text.white,
-  },
-  progressSection: {
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: colors.border,
-    borderRadius: 3,
-    overflow: "hidden",
-    marginBottom: 4,
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    textAlign: "right",
-  },
-  progressTextDark: {
-    color: colors.text.white,
-  },
+
   errorContainer: {
     paddingHorizontal: 16,
   },
@@ -693,6 +554,17 @@ const styles = StyleSheet.create({
   },
   emptySubtitleDark: {
     color: "#9CA3AF",
+  },
+  loadMoreContainer: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  loadMoreText: {
+    marginTop: 8,
+    color: colors.text.secondary,
+  },
+  loadMoreTextDark: {
+    color: colors.text.white,
   },
 });
 

@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  Platform,
 } from "react-native";
 import React, { useState, useEffect, useRef } from "react";
 import { Header } from "@/shared/components/ui/Header";
@@ -20,6 +21,7 @@ import SimpleFilterBottomSheet from "@/shared/components/ui/filters/simpleFilter
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { Transaction } from "@/shared/types/filter.types";
 import { colors } from "@/theme/colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface HeaderItem {
   type: "header";
@@ -67,6 +69,11 @@ const AllTransactions = () => {
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const insets = useSafeAreaInsets();
+
+  // Calculate tab bar height to ensure content isn't hidden
+  const tabBarHeight = (Platform.OS === "ios" ? 100 : 82) + insets.bottom;
+  const contentPaddingBottom = tabBarHeight + 20; // Extra 20px for better spacing
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [isFilterVisible, setIsFilterVisible] = useState(false);
@@ -664,6 +671,7 @@ const AllTransactions = () => {
         }}
         showsVerticalScrollIndicator={false}
         style={styles.content}
+        contentContainerStyle={{ paddingBottom: contentPaddingBottom }}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
@@ -727,7 +735,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     paddingHorizontal: 16,
-    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,

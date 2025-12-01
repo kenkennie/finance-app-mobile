@@ -98,18 +98,6 @@ export default function TabsLayout() {
       />
 
       <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Reports",
-          tabBarIcon: ({ color, size }) => (
-            <BarChart
-              color={color}
-              size={size || 24}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",

@@ -52,7 +52,7 @@ export interface BudgetCategory {
   categoryId: string;
   category: Category;
   allocatedAmount: number;
-  spentAmount: number;
+  rolloverAmount: number;
   createdAt: string;
   updatedAt: string;
 }

@@ -237,7 +237,7 @@ export default function BudgetDetailsScreen() {
               variant="h1"
               style={[styles.amount, isDark ? styles.amountDark : {}]}
             >
-              ${totalAllocated.toFixed(2)}
+              ${totalAllocated}
             </Typography>
             <Badge variant={budget.isActive ? "success" : "neutral"}>
               {budget.isActive ? "Active" : "Inactive"}
