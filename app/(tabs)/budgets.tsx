@@ -45,6 +45,22 @@ const Budgets = () => {
   const insets = useSafeAreaInsets();
 
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [budgetStats, setBudgetStats] = useState<{
+    [budgetId: string]: {
+      totalAllocated: number;
+      totalSpent: number;
+      totalRemaining: number;
+      overallPercentageUsed: number;
+      categoryStats: {
+        categoryId: string;
+        categoryName: string;
+        allocatedAmount: number;
+        spentAmount: number;
+        percentageUsed: number;
+        isOverBudget: boolean;
+      }[];
+    };
+  }>({});
   const [overallStats, setOverallStats] = useState<OverallBudgetStats | null>(
     null
   );
@@ -92,22 +108,66 @@ const Budgets = () => {
       console.log("Fetching budgets with filters:", filters);
 
       const [budgetsResponse, statsResponse] = await Promise.all([
-        budgetService.getBudgets(filters),
+        budgetService.getBudgetsWithStats(filters),
         budgetService.getOverallBudgetStats(),
       ]);
 
       console.log("Budgets response:", budgetsResponse);
       console.log("Stats response:", statsResponse);
 
+      let newBudgets: Budget[] = [];
       if (page === 1) {
-        setBudgets(budgetsResponse.data);
+        newBudgets = budgetsResponse.data;
+        setBudgets(newBudgets);
       } else {
         // For pagination - append new data
-        setBudgets((prev) => [...prev, ...budgetsResponse.data]);
+        newBudgets = budgetsResponse.data;
+        setBudgets((prev) => [...prev, ...newBudgets]);
       }
 
       setPaginationMeta(budgetsResponse.meta);
       setOverallStats(statsResponse);
+
+      // Fetch stats for each budget
+      const statsPromises = newBudgets.map(async (budget) => {
+        try {
+          const budgetStatsData = await budgetService.getBudgetStats(budget.id);
+
+          return {
+            budgetId: budget.id,
+            stats: {
+              totalAllocated: budgetStatsData.totalAllocated, // Add this
+              totalSpent: budgetStatsData.totalSpent,
+              totalRemaining: budgetStatsData.totalRemaining, // Add this
+              overallPercentageUsed: budgetStatsData.overallPercentageUsed, // Add this
+              categoryStats: budgetStatsData.categoryStats,
+            },
+          };
+        } catch (error) {
+          console.error(
+            `Failed to fetch stats for budget ${budget.id}:`,
+            error
+          );
+          return {
+            budgetId: budget.id,
+            stats: {
+              totalAllocated: 0,
+              totalSpent: 0,
+              totalRemaining: 0,
+              overallPercentageUsed: 0,
+              categoryStats: [],
+            },
+          };
+        }
+      });
+
+      const statsResults = await Promise.all(statsPromises);
+      const newStats: typeof budgetStats = {};
+      statsResults.forEach(({ budgetId, stats }) => {
+        newStats[budgetId] = stats;
+      });
+
+      setBudgetStats((prev) => ({ ...prev, ...newStats }));
     } catch (err: any) {
       setError(err.message || "Failed to load budgets");
       console.error("Failed to fetch budgets:", err);
@@ -158,13 +218,20 @@ const Budgets = () => {
   };
 
   const renderBudgetCard = ({ item: budget }: { item: Budget }) => {
-    // For now, we'll calculate spent amount from budget categories
-    // In a real implementation, this would come from budget stats API
-    const spentAmount =
-      budget.budgetCategories?.reduce(
-        (sum, cat) => sum + cat.allocatedAmount * 0.6, // Placeholder: assume 60% spent
-        0
-      ) || 0;
+    const stats = budgetStats[budget.id];
+    const spentAmount = stats?.totalSpent || 0;
+    const totalAllocated = stats?.totalAllocated || 0;
+    const totalRemaining = stats?.totalRemaining || 0;
+    const overallPercentageUsed = stats?.overallPercentageUsed || 0;
+    const categoryStats = stats?.categoryStats || [];
+
+    console.log(`Passing to BudgetCard for ${budget.name}:`, {
+      totalAllocated,
+      spentAmount,
+      totalRemaining,
+      overallPercentageUsed,
+      categoryStatsCount: categoryStats.length,
+    });
 
     return (
       <BudgetCard
@@ -174,6 +241,10 @@ const Budgets = () => {
         }
         isDark={isDark}
         spentAmount={spentAmount}
+        totalAllocated={totalAllocated}
+        totalRemaining={totalRemaining}
+        overallPercentageUsed={overallPercentageUsed}
+        categoryStats={categoryStats}
       />
     );
   };

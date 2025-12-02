@@ -28,17 +28,26 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuthStore();
   const {
-    accounts,
+    accounts = [],
     getAccounts,
     isLoading: accountsLoading,
   } = useAccountStore();
   const {
-    transactions,
+    transactions = [],
     summary,
     getRecentTransactions,
     isLoading: transactionsLoading,
   } = useTransactionStore();
-  const { budgets, getBudgets, isLoading: budgetsLoading } = useBudgetStore();
+  const {
+    budgets = [],
+    getBudgets,
+    isLoading: budgetsLoading,
+  } = useBudgetStore();
+
+  // Ensure we always have arrays to prevent "length of undefined" errors
+  const safeTransactions = transactions || [];
+  const safeAccounts = accounts || [];
+  const safeBudgets = budgets || [];
 
   useEffect(() => {
     getAccounts();
@@ -81,7 +90,7 @@ export default function Dashboard() {
     [isDark]
   );
 
-  const totalBalance = accounts.reduce(
+  const totalBalance = safeAccounts.reduce(
     (sum, account) =>
       sum + (parseFloat(account.balance?.toString() || "0") || 0),
     0
@@ -117,10 +126,13 @@ export default function Dashboard() {
     });
 
     const dailyExpenses = last7Days.map((date) => {
-      const dayTransactions = transactions.filter(
-        (t) => t.date.startsWith(date) && t.transactionType === "EXPENSE"
+      const dayTransactions = safeTransactions.filter(
+        (t: any) => t.date.startsWith(date) && t.transactionType === "EXPENSE"
       );
-      return dayTransactions.reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+      return dayTransactions.reduce(
+        (sum: number, t: any) => sum + (t.totalAmount || 0),
+        0
+      );
     });
 
     return {
@@ -144,6 +156,8 @@ export default function Dashboard() {
   >("thisMonth");
 
   const categoryData = useMemo(() => {
+    // Ensure transactions is always an array
+    const safeTransactions = transactions || [];
     const categoryTotals: { [key: string]: number } = {};
 
     // Calculate date range based on selected time period
@@ -180,7 +194,7 @@ export default function Dashboard() {
     }
 
     // Filter transactions by time period
-    transactions
+    safeTransactions
       .filter((t) => {
         const transactionDate = new Date(t.date);
         return (
@@ -217,7 +231,7 @@ export default function Dashboard() {
       legendFontColor: themeColors.text.primary,
       legendFontSize: 12,
     }));
-  }, [transactions, selectedTimePeriod, themeColors.text.primary]);
+  }, [safeTransactions, selectedTimePeriod, themeColors.text.primary]);
 
   // Monthly comparison data
   const monthlyData = useMemo(() => {
@@ -235,7 +249,7 @@ export default function Dashboard() {
     });
 
     const monthlyStats = months.map(({ month, monthIndex, yearValue }) => {
-      const monthTransactions = transactions.filter((t) => {
+      const monthTransactions = safeTransactions.filter((t: any) => {
         const transactionDate = new Date(t.date);
         return (
           transactionDate.getMonth() === monthIndex &&
@@ -244,12 +258,12 @@ export default function Dashboard() {
       });
 
       const income = monthTransactions
-        .filter((t) => t.transactionType === "INCOME")
-        .reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+        .filter((t: any) => t.transactionType === "INCOME")
+        .reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
 
       const expenses = monthTransactions
-        .filter((t) => t.transactionType === "EXPENSE")
-        .reduce((sum, t) => sum + (t.totalAmount || 0), 0);
+        .filter((t: any) => t.transactionType === "EXPENSE")
+        .reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
 
       return {
         month,
@@ -579,7 +593,7 @@ export default function Dashboard() {
         </Card>
 
         {/* Account Slider */}
-        {accounts.length > 0 && (
+        {accounts && accounts.length > 0 && (
           <Card
             isDark={isDark}
             style={styles.sliderCard}
@@ -596,7 +610,7 @@ export default function Dashboard() {
               style={styles.accountSlider}
               contentContainerStyle={styles.accountSliderContent}
             >
-              {accounts.map((account) => (
+              {safeAccounts.map((account: any) => (
                 <View
                   key={account.id}
                   style={[
@@ -636,7 +650,7 @@ export default function Dashboard() {
         )}
 
         {/* Current Budgets */}
-        {budgets.length > 0 && (
+        {budgets && budgets.length > 0 && (
           <Card
             isDark={isDark}
             style={styles.budgetsCard}
@@ -647,10 +661,10 @@ export default function Dashboard() {
             >
               Current Budgets
             </Typography>
-            {budgets.slice(0, 3).map((budget) => {
+            {safeBudgets.slice(0, 3).map((budget: any) => {
               const spent =
                 budget.budgetCategories?.reduce(
-                  (sum, cat) =>
+                  (sum: number, cat: any) =>
                     sum +
                     ((cat as any).spentAmount
                       ? Number((cat as any).spentAmount)
@@ -805,7 +819,7 @@ export default function Dashboard() {
           </View>
 
           {/* Category Summary */}
-          {categoryData.length > 0 && (
+          {categoryData && categoryData.length > 0 && (
             <View style={styles.categorySummary}>
               <Typography
                 variant="caption"
@@ -829,7 +843,7 @@ export default function Dashboard() {
             </View>
           )}
 
-          {categoryData.length > 0 ? (
+          {categoryData && categoryData.length > 0 ? (
             <PieChart
               data={categoryData}
               width={width - spacing.lg * 2}
@@ -875,7 +889,7 @@ export default function Dashboard() {
           )}
 
           {/* Category List */}
-          {categoryData.length > 0 && (
+          {categoryData && categoryData.length > 0 && (
             <View style={styles.categoryList}>
               {categoryData.slice(0, 5).map((category, index) => (
                 <View
@@ -988,7 +1002,7 @@ export default function Dashboard() {
           >
             Recent Transactions
           </Typography>
-          {transactions.slice(0, 10).map((transaction) => (
+          {safeTransactions.slice(0, 10).map((transaction: any) => (
             <View
               key={transaction.id}
               style={[

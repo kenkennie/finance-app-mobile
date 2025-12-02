@@ -256,7 +256,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Budget Name"
-                placeholder="Enter budget name"
+                placeholder="e.g. January Budget 2025, Monthly Groceries"
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}

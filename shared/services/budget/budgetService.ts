@@ -75,12 +75,73 @@ export const budgetService = {
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
     const response = await apiClient.get<{
-      data: Budget[];
-      meta: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
+      success: boolean;
+      message: string;
+      data: {
+        data: Budget[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      };
+    }>(url);
+
+    return response.data.data;
+  },
+
+  async getBudgetsWithStats(filters?: {
+    isActive?: boolean;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<{
+    data: (Budget & { stats: BudgetStats })[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+
+    if (filters?.isActive !== undefined) {
+      queryParams.append("isActive", filters.isActive.toString());
+    }
+    if (filters?.startDate) {
+      queryParams.append("startDate", filters.startDate);
+    }
+    if (filters?.endDate) {
+      queryParams.append("endDate", filters.endDate);
+    }
+    if (filters?.search) {
+      queryParams.append("search", filters.search);
+    }
+    if (filters?.limit) {
+      queryParams.append("limit", filters.limit.toString());
+    }
+    if (filters?.page) {
+      queryParams.append("page", filters.page.toString());
+    }
+
+    const url = `/budgets/with-stats${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
+    const response = await apiClient.get<{
+      success: boolean;
+      message: string;
+      data: {
+        data: (Budget & { stats: BudgetStats })[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
       };
     }>(url);
 

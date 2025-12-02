@@ -12,6 +12,9 @@ interface BudgetCardProps {
   onLongPress?: () => void;
   isDark: boolean;
   spentAmount?: number;
+  totalAllocated?: number;
+  totalRemaining?: number;
+  overallPercentageUsed?: number;
   categoryStats?: {
     categoryId: string;
     categoryName: string;
@@ -28,6 +31,9 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
   onLongPress,
   isDark = false,
   spentAmount = 0,
+  totalAllocated: backendTotalAllocated,
+  totalRemaining: backendTotalRemaining,
+  overallPercentageUsed: backendOverallPercentageUsed,
   categoryStats = [],
 }) => {
   const formatDate = (dateString: string) => {
@@ -42,11 +48,11 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
     }).format(amount);
   };
 
-  const totalAllocated = budget.amount;
+  // All calculations now come from backend - no fallbacks
+  const totalAllocated = backendTotalAllocated!;
   const totalSpent = spentAmount;
-  const remainingAmount = totalAllocated - totalSpent;
-  const utilizationPercentage =
-    totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
+  const remainingAmount = backendTotalRemaining!;
+  const utilizationPercentage = backendOverallPercentageUsed!;
 
   const getProgressBarColor = () => {
     if (utilizationPercentage > 100) return colors.error;
@@ -58,11 +64,6 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
     if (remainingAmount >= 0) return colors.success;
     return colors.error;
   };
-
-  // Get top 3 categories by allocation for display
-  const topCategories = categoryStats
-    .sort((a, b) => b.allocatedAmount - a.allocatedAmount)
-    .slice(0, 3);
 
   return (
     <Card
@@ -145,71 +146,6 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
           {utilizationPercentage.toFixed(1)}% used
         </Text>
       </View>
-
-      {/* Category Breakdown */}
-      {topCategories.length > 0 && (
-        <View style={styles.categoriesSection}>
-          <Text
-            style={[
-              styles.categoriesTitle,
-              isDark && styles.categoriesTitleDark,
-            ]}
-          >
-            Top Categories
-          </Text>
-          <View style={styles.categoriesList}>
-            {topCategories.map((category, index) => (
-              <View
-                key={category.categoryId}
-                style={styles.categoryItem}
-              >
-                <View style={styles.categoryInfo}>
-                  <Text
-                    style={[
-                      styles.categoryName,
-                      isDark && styles.categoryNameDark,
-                    ]}
-                    numberOfLines={1}
-                  >
-                    {category.categoryName}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.categoryAmount,
-                      isDark && styles.categoryAmountDark,
-                    ]}
-                  >
-                    {formatCurrency(category.allocatedAmount)}
-                  </Text>
-                </View>
-                <View style={styles.categoryProgress}>
-                  <View style={styles.categoryProgressBar}>
-                    <View
-                      style={[
-                        styles.categoryProgressFill,
-                        {
-                          width: `${Math.min(category.percentageUsed, 100)}%`,
-                          backgroundColor: category.isOverBudget
-                            ? colors.error
-                            : colors.primary,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.categoryPercentage,
-                      isDark && styles.categoryPercentageDark,
-                    ]}
-                  >
-                    {category.percentageUsed.toFixed(0)}%
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
 
       {/* Footer */}
       <View style={styles.footer}>
@@ -305,74 +241,7 @@ const styles = StyleSheet.create({
   progressTextDark: {
     color: colors.text.white,
   },
-  categoriesSection: {
-    marginBottom: 16,
-  },
-  categoriesTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.text.primary,
-    marginBottom: 8,
-  },
-  categoriesTitleDark: {
-    color: colors.text.white,
-  },
-  categoriesList: {
-    gap: 8,
-  },
-  categoryItem: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: 8,
-    padding: 8,
-  },
-  categoryInfo: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 4,
-  },
-  categoryName: {
-    fontSize: 12,
-    color: colors.text.secondary,
-    flex: 1,
-    marginRight: 8,
-  },
-  categoryNameDark: {
-    color: "#9CA3AF",
-  },
-  categoryAmount: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.text.primary,
-  },
-  categoryAmountDark: {
-    color: colors.text.white,
-  },
-  categoryProgress: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  categoryProgressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: colors.border,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  categoryProgressFill: {
-    height: "100%",
-    borderRadius: 2,
-  },
-  categoryPercentage: {
-    fontSize: 10,
-    color: colors.text.secondary,
-    minWidth: 24,
-    textAlign: "right",
-  },
-  categoryPercentageDark: {
-    color: "#9CA3AF",
-  },
+
   footer: {
     flexDirection: "row",
     justifyContent: "space-between",
