@@ -7,7 +7,7 @@ import {
   RefreshControl,
   Platform,
 } from "react-native";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Header } from "@/shared/components/ui/Header";
 import { FAB } from "@/shared/components/ui/FAB";
 import { useRouter } from "expo-router";
@@ -16,8 +16,8 @@ import { Typography } from "@/shared/components/ui/Typography";
 import { Card } from "@/shared/components/ui/Card";
 import { TabBar } from "@/shared/components/ui/TabBar";
 import { BudgetCard } from "@/app/screens/Budgets/BudgetCard";
-import { budgetService } from "@/shared/services/budget/budgetService";
-import { Budget, OverallBudgetStats } from "@/shared/types/budget.types";
+import { useBudgetStore } from "@/store/budgetStore";
+import { Budget } from "@/shared/types/budget.types";
 import { colors } from "@/theme/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -44,37 +44,24 @@ const Budgets = () => {
   const isDark = colorScheme === "dark";
   const insets = useSafeAreaInsets();
 
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [budgetStats, setBudgetStats] = useState<{
-    [budgetId: string]: {
-      totalAllocated: number;
-      totalSpent: number;
-      totalRemaining: number;
-      overallPercentageUsed: number;
-      categoryStats: {
-        categoryId: string;
-        categoryName: string;
-        allocatedAmount: number;
-        spentAmount: number;
-        percentageUsed: number;
-        isOverBudget: boolean;
-      }[];
-    };
-  }>({});
-  const [overallStats, setOverallStats] = useState<OverallBudgetStats | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    budgets,
+    budgetStats,
+    overallStats,
+    isLoading,
+    isLoadingMore,
+    error,
+    pagination,
+    getBudgets,
+    loadMoreBudgets,
+  } = useBudgetStore();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
-  const [paginationMeta, setPaginationMeta] = useState<{
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  } | null>(null);
+
+  // Refs for request deduplication
+  const currentRequestRef = useRef<string>("");
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Calculate tab bar height to ensure content isn't hidden
   const tabBarHeight = (Platform.OS === "ios" ? 100 : 82) + insets.bottom;
@@ -83,131 +70,95 @@ const Budgets = () => {
   // Debounce search query with 500ms delay
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const fetchBudgets = async (page: number = 1) => {
-    try {
-      setError(null);
+  // Fetch budgets when filters change
+  useEffect(() => {
+    // Create request identifier for deduplication
+    const requestId = `${activeTab}-${debouncedSearchQuery}`;
 
-      // Build filters based on current state
-      const filters: any = {
-        page,
-        limit: 20, // Page size
-      };
-
-      // Add search filter
-      if (debouncedSearchQuery.trim()) {
-        filters.search = debouncedSearchQuery.trim();
-      }
-
-      // Add active status filter based on tab
-      if (activeTab === "active") {
-        filters.isActive = true;
-      } else if (activeTab === "inactive") {
-        filters.isActive = false;
-      }
-
-      console.log("Fetching budgets with filters:", filters);
-
-      const [budgetsResponse, statsResponse] = await Promise.all([
-        budgetService.getBudgetsWithStats(filters),
-        budgetService.getOverallBudgetStats(),
-      ]);
-
-      console.log("Budgets response:", budgetsResponse);
-      console.log("Stats response:", statsResponse);
-
-      let newBudgets: Budget[] = [];
-      if (page === 1) {
-        newBudgets = budgetsResponse.data;
-        setBudgets(newBudgets);
-      } else {
-        // For pagination - append new data
-        newBudgets = budgetsResponse.data;
-        setBudgets((prev) => [...prev, ...newBudgets]);
-      }
-
-      setPaginationMeta(budgetsResponse.meta);
-      setOverallStats(statsResponse);
-
-      // Fetch stats for each budget
-      const statsPromises = newBudgets.map(async (budget) => {
-        try {
-          const budgetStatsData = await budgetService.getBudgetStats(budget.id);
-
-          return {
-            budgetId: budget.id,
-            stats: {
-              totalAllocated: budgetStatsData.totalAllocated, // Add this
-              totalSpent: budgetStatsData.totalSpent,
-              totalRemaining: budgetStatsData.totalRemaining, // Add this
-              overallPercentageUsed: budgetStatsData.overallPercentageUsed, // Add this
-              categoryStats: budgetStatsData.categoryStats,
-            },
-          };
-        } catch (error) {
-          console.error(
-            `Failed to fetch stats for budget ${budget.id}:`,
-            error
-          );
-          return {
-            budgetId: budget.id,
-            stats: {
-              totalAllocated: 0,
-              totalSpent: 0,
-              totalRemaining: 0,
-              overallPercentageUsed: 0,
-              categoryStats: [],
-            },
-          };
-        }
-      });
-
-      const statsResults = await Promise.all(statsPromises);
-      const newStats: typeof budgetStats = {};
-      statsResults.forEach(({ budgetId, stats }) => {
-        newStats[budgetId] = stats;
-      });
-
-      setBudgetStats((prev) => ({ ...prev, ...newStats }));
-    } catch (err: any) {
-      setError(err.message || "Failed to load budgets");
-      console.error("Failed to fetch budgets:", err);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+    // Cancel previous request if it's still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
     }
+
+    // Skip if this request is already in progress
+    if (currentRequestRef.current === requestId) {
+      return;
+    }
+
+    currentRequestRef.current = requestId;
+    abortControllerRef.current = new AbortController();
+
+    const fetchBudgets = async () => {
+      try {
+        const params: any = {};
+
+        // Add type filter
+        if (activeTab === "active") {
+          params.isActive = true;
+        } else if (activeTab === "inactive") {
+          params.isActive = false;
+        }
+
+        // Add search filter
+        if (debouncedSearchQuery.trim()) {
+          params.search = debouncedSearchQuery.trim();
+        }
+
+        // Call getBudgets with the params
+        await getBudgets(params);
+      } catch (error: any) {
+        // Don't log abort errors
+        if (error.name !== "AbortError") {
+          console.error("Failed to fetch budgets:", error);
+        }
+      } finally {
+        // Clear request tracking
+        if (currentRequestRef.current === requestId) {
+          currentRequestRef.current = "";
+          abortControllerRef.current = null;
+        }
+      }
+    };
+
+    fetchBudgets();
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [activeTab, debouncedSearchQuery, getBudgets]);
+
+  // Handle load more budgets
+  const handleLoadMore = () => {
+    if (isLoadingMore || pagination.page >= pagination.totalPages) return;
+
+    const params: any = {};
+    if (activeTab === "active") {
+      params.isActive = true;
+    } else if (activeTab === "inactive") {
+      params.isActive = false;
+    }
+    if (debouncedSearchQuery.trim()) {
+      params.search = debouncedSearchQuery.trim();
+    }
+
+    loadMoreBudgets(params);
   };
-
-  useEffect(() => {
-    setIsLoading(true);
-    fetchBudgets(1);
-  }, []);
-
-  // Re-fetch when search query or active tab changes
-  useEffect(() => {
-    const delayedFetch = setTimeout(() => {
-      setIsLoading(true);
-      fetchBudgets(1);
-    }, 300); // Small delay to avoid too many requests
-
-    return () => clearTimeout(delayedFetch);
-  }, [debouncedSearchQuery, activeTab]);
-
-  // Note: Filtering is now done on the backend, so budgets array is already filtered
-  // Just show the budgets as returned from the API
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchBudgets(1);
-  };
-
-  const handleLoadMore = async () => {
-    if (
-      !isLoading &&
-      paginationMeta &&
-      paginationMeta.page < paginationMeta.totalPages
-    ) {
-      await fetchBudgets(paginationMeta.page + 1);
+    const params: any = {};
+    if (activeTab === "active") {
+      params.isActive = true;
+    } else if (activeTab === "inactive") {
+      params.isActive = false;
     }
+    if (debouncedSearchQuery.trim()) {
+      params.search = debouncedSearchQuery.trim();
+    }
+
+    await getBudgets(params);
   };
 
   const formatCurrency = (amount: number) => {
@@ -249,7 +200,7 @@ const Budgets = () => {
     );
   };
 
-  if (isLoading && !isRefreshing) {
+  if (isLoading) {
     return (
       <View
         style={[
@@ -297,7 +248,7 @@ const Budgets = () => {
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
-            refreshing={isRefreshing}
+            refreshing={isLoading}
             onRefresh={handleRefresh}
             tintColor={isDark ? colors.text.white : colors.text.primary}
           />
@@ -306,7 +257,7 @@ const Budgets = () => {
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.1}
         ListFooterComponent={
-          isLoading && budgets.length > 0 ? (
+          isLoadingMore ? (
             <View style={styles.loadMoreContainer}>
               <ActivityIndicator
                 size="small"
@@ -435,8 +386,8 @@ const Budgets = () => {
                 }
               >
                 Your Budgets ({budgets.length}
-                {paginationMeta && paginationMeta.total > budgets.length
-                  ? ` of ${paginationMeta.total}`
+                {pagination.total > budgets.length
+                  ? ` of ${pagination.total}`
                   : ""}
                 )
               </Typography>

@@ -5,14 +5,51 @@ import {
   BudgetStats,
   CreateBudgetData,
   UpdateBudgetData,
+  OverallBudgetStats,
 } from "@/shared/types/budget.types";
 import { extractErrorMessage } from "@/shared/utils/api/responseHandler";
 import { budgetService } from "@/shared/services/budget/budgetService";
 
 interface BudgetStore extends BudgetState {
+  // List state
+  budgetStats: {
+    [budgetId: string]: {
+      totalAllocated: number;
+      totalSpent: number;
+      totalRemaining: number;
+      overallPercentageUsed: number;
+      categoryStats: {
+        categoryId: string;
+        categoryName: string;
+        allocatedAmount: number;
+        spentAmount: number;
+        percentageUsed: number;
+        isOverBudget: boolean;
+      }[];
+    };
+  };
+  overallStats: OverallBudgetStats | null;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  isLoadingMore: boolean;
+  hasMore: boolean;
+
   // Actions
   createBudget: (data: CreateBudgetData) => Promise<Budget>;
-  getBudgets: () => Promise<void>;
+  getBudgets: (filters?: {
+    isActive?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) => Promise<void>;
+  loadMoreBudgets: (filters?: {
+    isActive?: boolean;
+    search?: string;
+  }) => Promise<void>;
   getBudgetById: (id: string) => Promise<Budget | null>;
   updateBudget: (id: string, data: UpdateBudgetData) => Promise<Budget>;
   deleteBudget: (id: string) => Promise<void>;
@@ -22,6 +59,7 @@ interface BudgetStore extends BudgetState {
   // Utility actions
   clearError: () => void;
   clearSuccess: () => void;
+  resetPagination: () => void;
 }
 
 export const useBudgetStore = create<BudgetStore>((set, get) => ({
@@ -33,6 +71,14 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
   hasMore: true,
   error: null,
   successMessage: null,
+  budgetStats: {},
+  overallStats: null,
+  pagination: {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  },
 
   createBudget: async (data: CreateBudgetData): Promise<Budget> => {
     try {
@@ -57,14 +103,58 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
     }
   },
 
-  getBudgets: async (): Promise<void> => {
+  getBudgets: async (filters = {}): Promise<void> => {
     try {
       set({ isLoading: true, error: null });
 
-      const { data: budgets } = await budgetService.getBudgets();
+      const [budgetsResponse, statsResponse] = await Promise.all([
+        budgetService.getBudgetsWithStats(filters),
+        budgetService.getOverallBudgetStats(),
+      ]);
+
+      // Extract budgets and stats
+      const budgets = budgetsResponse.data.map((item) => ({
+        ...item,
+        stats: undefined, // Remove stats from budget object
+      }));
+
+      const budgetStats: {
+        [budgetId: string]: {
+          totalAllocated: number;
+          totalSpent: number;
+          totalRemaining: number;
+          overallPercentageUsed: number;
+          categoryStats: {
+            categoryId: string;
+            categoryName: string;
+            allocatedAmount: number;
+            spentAmount: number;
+            percentageUsed: number;
+            isOverBudget: boolean;
+          }[];
+        };
+      } = {};
+      budgetsResponse.data.forEach((budgetWithStats) => {
+        budgetStats[budgetWithStats.id] = {
+          totalAllocated: budgetWithStats.stats.totalAllocated,
+          totalSpent: budgetWithStats.stats.totalSpent,
+          totalRemaining: budgetWithStats.stats.totalRemaining,
+          overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
+          categoryStats: budgetWithStats.stats.categoryStats,
+        };
+      });
 
       set({
-        budgets: budgets,
+        budgets,
+        budgetStats,
+        overallStats: statsResponse,
+        pagination: {
+          page: budgetsResponse.meta.page,
+          limit: budgetsResponse.meta.limit,
+          total: budgetsResponse.meta.total,
+          totalPages: budgetsResponse.meta.totalPages,
+        },
+        hasMore: budgetsResponse.meta.page < budgetsResponse.meta.totalPages,
         isLoading: false,
       });
     } catch (error: any) {
@@ -73,6 +163,77 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
         error: errorMessage,
         isLoading: false,
       });
+      throw error;
+    }
+  },
+
+  loadMoreBudgets: async (filters = {}): Promise<void> => {
+    const currentPagination = get().pagination;
+    if (currentPagination.page >= currentPagination.totalPages) {
+      return; // No more pages
+    }
+
+    try {
+      set({ isLoadingMore: true, error: null });
+
+      const nextPage = currentPagination.page + 1;
+      const budgetsResponse = await budgetService.getBudgetsWithStats({
+        ...filters,
+        page: nextPage,
+        limit: currentPagination.limit,
+      });
+
+      // Extract budgets and stats
+      const newBudgets = budgetsResponse.data.map((item) => ({
+        ...item,
+        stats: undefined, // Remove stats from budget object
+      }));
+
+      const newBudgetStats: {
+        [budgetId: string]: {
+          totalAllocated: number;
+          totalSpent: number;
+          totalRemaining: number;
+          overallPercentageUsed: number;
+          categoryStats: {
+            categoryId: string;
+            categoryName: string;
+            allocatedAmount: number;
+            spentAmount: number;
+            percentageUsed: number;
+            isOverBudget: boolean;
+          }[];
+        };
+      } = {};
+      budgetsResponse.data.forEach((budgetWithStats) => {
+        newBudgetStats[budgetWithStats.id] = {
+          totalAllocated: budgetWithStats.stats.totalAllocated,
+          totalSpent: budgetWithStats.stats.totalSpent,
+          totalRemaining: budgetWithStats.stats.totalRemaining,
+          overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
+          categoryStats: budgetWithStats.stats.categoryStats,
+        };
+      });
+
+      set((state) => ({
+        budgets: [...state.budgets, ...newBudgets],
+        budgetStats: { ...state.budgetStats, ...newBudgetStats },
+        pagination: {
+          page: budgetsResponse.meta.page,
+          limit: budgetsResponse.meta.limit,
+          total: budgetsResponse.meta.total,
+          totalPages: budgetsResponse.meta.totalPages,
+        },
+        hasMore: budgetsResponse.meta.page < budgetsResponse.meta.totalPages,
+        isLoadingMore: false,
+      }));
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      set({
+        error: errorMessage,
+        isLoadingMore: false,
+      });
+      throw error;
     }
   },
 
@@ -178,4 +339,14 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
 
   clearError: () => set({ error: null }),
   clearSuccess: () => set({ successMessage: null }),
+  resetPagination: () =>
+    set({
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      },
+      hasMore: true,
+    }),
 }));
