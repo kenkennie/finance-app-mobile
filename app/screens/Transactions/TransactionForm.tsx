@@ -1059,7 +1059,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                       error={errors.items?.[index]?.categoryId?.message}
                       addNewLabel="+ Add New Category"
                       onAddNew={() => {
-                        console.log("Add new category clicked for item", index);
                         setCurrentItemIndex(index);
                         setShowAddCategoryModal(true);
                       }}

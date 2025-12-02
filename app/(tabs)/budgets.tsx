@@ -176,14 +176,6 @@ const Budgets = () => {
     const overallPercentageUsed = stats?.overallPercentageUsed || 0;
     const categoryStats = stats?.categoryStats || [];
 
-    console.log(`Passing to BudgetCard for ${budget.name}:`, {
-      totalAllocated,
-      spentAmount,
-      totalRemaining,
-      overallPercentageUsed,
-      categoryStatsCount: categoryStats.length,
-    });
-
     return (
       <BudgetCard
         budget={budget}

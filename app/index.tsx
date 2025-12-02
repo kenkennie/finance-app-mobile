@@ -32,7 +32,6 @@ export default function Index() {
   useEffect(() => {
     if (navigationState?.key) {
       setIsNavigationReady(true);
-      console.log("Navigation is ready:", navigationState.key);
     }
   }, [navigationState]);
 
@@ -44,12 +43,6 @@ export default function Index() {
       !isAuthenticated ||
       checkingOnboarding
     ) {
-      console.log(
-        isNavigationReady,
-        isLoading,
-        isAuthenticated,
-        checkingOnboarding
-      );
       return; // Don't check yet
     }
 
@@ -96,35 +89,20 @@ export default function Index() {
     const inTabsGroup = segments[0] === "(tabs)";
     const inOnboardingGroup = segments[0] === "onboarding";
 
-    console.log("🧭 Navigation check:", {
-      isNavigationReady,
-      isAuthenticated,
-      isLoading,
-      checkingOnboarding,
-      onboardingStatus,
-      segments,
-      inAuthGroup,
-      inTabsGroup,
-      inOnboardingGroup,
-    });
-
     // Redirect logic
     if (!isAuthenticated && !inAuthGroup) {
-      console.log("→ Redirecting to auth/welcome");
       setTimeout(() => router.replace("/(auth)/welcome"), 0);
     } else if (
       isAuthenticated &&
       onboardingStatus?.needsOnboarding &&
       !inOnboardingGroup
     ) {
-      console.log("→ Redirecting to onboarding/welcome");
       setTimeout(() => router.replace("/onboarding/welcome"), 0);
     } else if (
       isAuthenticated &&
       !onboardingStatus?.needsOnboarding &&
       !inTabsGroup
     ) {
-      console.log("→ Redirecting to tabs (dashboard)");
       setTimeout(() => router.replace("/(tabs)"), 0);
     }
   }, [

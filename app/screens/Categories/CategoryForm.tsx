@@ -83,7 +83,6 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
   // Reset form when initialData changes
   useEffect(() => {
     if (mode === "edit" && initialData) {
-      console.log("Resetting edit form with initialData:", initialData);
       // Map children to subcategories if subcategories not present
       const subcategories =
         initialData.subcategories ||
@@ -104,7 +103,6 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
         subcategories,
         isActive: initialData.isActive ?? true,
       });
-      console.log("Form reset complete");
     }
   }, [initialData, editForm, mode]);
 
@@ -293,13 +291,6 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
   };
 
   const handleFormSubmit = async (data: UpdateCategoryDto) => {
-    console.log("=========ddddddddddddddddddddd===========================");
-    console.log(
-      "CategoryForm handleFormSubmit (edit mode) called with data:",
-      JSON.stringify(data, null, 2)
-    );
-    console.log("Form errors:", editForm.formState.errors);
-    console.log("====================================");
     await onSubmit(data);
   };
 

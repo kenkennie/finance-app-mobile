@@ -50,22 +50,12 @@ const EditCategoryScreen = ({}) => {
   };
 
   const onSubmit = async (data: UpdateCategoryDto) => {
-    console.log("====================================");
-    console.log(
-      "EditCategory onSubmit called with data:",
-      JSON.stringify(data, null, 2)
-    );
-    console.log("====================================");
-
     if (!categoryId) {
-      console.log("No categoryId found");
       return;
     }
 
     try {
-      console.log("Calling updateCategory with id:", categoryId);
       const updatedCategory = await updateCategory(categoryId, data);
-      console.log("Update successful:", updatedCategory);
       setCategory(updatedCategory);
       showSuccess(successMessage || "Category updated successfully!");
       setTimeout(() => {

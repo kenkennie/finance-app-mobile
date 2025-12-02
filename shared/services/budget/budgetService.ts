@@ -144,9 +144,6 @@ export const budgetService = {
         };
       };
     }>(url);
-    console.log("===========queryParamsqueryParams=========================");
-    console.log(url);
-    console.log("=============queryParamsqueryParams=======================");
     return response.data.data;
   },
 

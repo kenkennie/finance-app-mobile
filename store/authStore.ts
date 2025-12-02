@@ -280,14 +280,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   completeOnboarding: async () => {
-    console.log("📱 Auth store: completeOnboarding called");
     try {
-      console.log("📡 Calling authService.completeOnboarding...");
       const result = await authService.completeOnboarding();
-      console.log("📱 Auth store: completeOnboarding result:", result);
       return result;
     } catch (error) {
-      console.log("❌ Auth store: completeOnboarding error:", error);
       const errorMessage = extractErrorMessage(error);
       set({ error: errorMessage });
       throw new Error(errorMessage);

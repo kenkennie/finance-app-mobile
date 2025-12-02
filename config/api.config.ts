@@ -79,7 +79,6 @@ apiClient.interceptors.response.use(
 
       // ✅ IMPORTANT: Skip token refresh for public/auth endpoints
       if (shouldSkipTokenRefresh(originalRequest)) {
-        console.log("⏭️ Skipping token refresh for:", originalRequest.url);
         return Promise.reject(error); // Return error immediately
       }
 
@@ -89,7 +88,6 @@ apiClient.interceptors.response.use(
         const refreshToken = await SecureStore.getItemAsync("refresh_token");
 
         if (!refreshToken) {
-          console.log("❌ No refresh token available, cannot refresh");
           // Clear any stale tokens
           await SecureStore.deleteItemAsync("access_token");
           await SecureStore.deleteItemAsync("user");
@@ -98,7 +96,6 @@ apiClient.interceptors.response.use(
 
         // If already refreshing, queue this request
         if (isRefreshing) {
-          console.log("⏳ Token refresh in progress, queuing request...");
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
           })
@@ -117,8 +114,6 @@ apiClient.interceptors.response.use(
         isRefreshing = true;
 
         try {
-          console.log("🔄 Attempting to refresh token...");
-
           // Call refresh endpoint
           const response = await axios.post(
             `${ENV.apiUrl}/auth/refresh`,

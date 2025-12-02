@@ -328,17 +328,13 @@ export const authService = {
     hasCategories: boolean;
     hasAccounts: boolean;
   }> {
-    console.log("🌐 Auth service: completeOnboarding called");
-    console.log("📡 Making API call to /user/complete-onboarding");
     const response = await apiClient.post<
       ApiSuccessResponse<{
         hasCategories: boolean;
         hasAccounts: boolean;
       }>
     >("/user/complete-onboarding");
-    console.log("🌐 Auth service: API response received", response);
     const result = extractResponseData(response);
-    console.log("🌐 Auth service: extracted result", result);
     return result;
   },
 
