@@ -16,7 +16,7 @@ import { Typography } from "@/shared/components/ui/Typography";
 import { Badge } from "@/shared/components/ui/Badge";
 import { Button } from "@/shared/components/ui/Button";
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
-import { budgetService } from "@/shared/services/budget/budgetService";
+import { useBudgetStore } from "@/store/budgetStore";
 import { Budget, BudgetStats } from "@/shared/types/budget.types";
 import { colors } from "@/theme/colors";
 import { spacing, borderRadius } from "@/theme/spacing";
@@ -27,10 +27,12 @@ export default function BudgetDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const [budget, setBudget] = useState<Budget | null>(null);
-  const [stats, setStats] = useState<BudgetStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { getBudgetWithStats, deleteBudget, isLoading, error } =
+    useBudgetStore();
+
+  const [budgetWithStats, setBudgetWithStats] = useState<
+    (Budget & { stats: BudgetStats }) | null
+  >(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -41,22 +43,11 @@ export default function BudgetDetailsScreen() {
   }, [budgetId]);
 
   const loadBudget = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+    if (!budgetId) return;
 
-      const [budgetResponse, statsResponse] = await Promise.all([
-        budgetService.getBudgetById(budgetId),
-        budgetService.getBudgetStats(budgetId),
-      ]);
-
-      setBudget(budgetResponse);
-      setStats(statsResponse);
-    } catch (err: any) {
-      setError(err.message || "Failed to load budget details");
-      console.error("Failed to load budget:", err);
-    } finally {
-      setIsLoading(false);
+    const budgetData = await getBudgetWithStats(budgetId);
+    if (budgetData) {
+      setBudgetWithStats(budgetData);
     }
   };
 
@@ -77,7 +68,7 @@ export default function BudgetDetailsScreen() {
     try {
       setIsDeleting(true);
       setDeleteModalVisible(false);
-      await budgetService.deleteBudget(budgetId);
+      await deleteBudget(budgetId);
       router.replace("/(tabs)/budgets");
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to delete budget");
@@ -131,7 +122,7 @@ export default function BudgetDetailsScreen() {
     );
   }
 
-  if (error || !budget) {
+  if (error || !budgetWithStats) {
     return (
       <View
         style={[
@@ -155,17 +146,12 @@ export default function BudgetDetailsScreen() {
     );
   }
 
-  const totalAllocated =
-    budget.budgetCategories?.reduce(
-      (sum, cat) => sum + cat.allocatedAmount,
-      0
-    ) || 0;
+  const budget = budgetWithStats;
+  const stats = budgetWithStats.stats;
 
-  const totalSpent =
-    stats?.categoryStats?.reduce((sum, cat) => sum + cat.spentAmount, 0) || 0;
-
-  const utilizationPercentage =
-    totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
+  const totalAllocated = stats.totalAllocated;
+  const totalSpent = stats.totalSpent;
+  const utilizationPercentage = stats.overallPercentageUsed;
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
@@ -186,29 +172,12 @@ export default function BudgetDetailsScreen() {
         style={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Budget Header Card */}
+        {/* Budget Header & Overview Combined */}
         <Card
           isDark={isDark}
           style={styles.headerCard}
         >
           <View style={styles.budgetHeader}>
-            <View
-              style={[
-                styles.budgetIcon,
-                {
-                  backgroundColor: budget.isActive ? "#10B98120" : "#6B728020",
-                },
-              ]}
-            >
-              <Typography
-                variant="h1"
-                style={{
-                  color: budget.isActive ? "#10B981" : "#6B7280",
-                }}
-              >
-                💰
-              </Typography>
-            </View>
             <View style={styles.budgetInfo}>
               <Typography
                 variant="h2"
@@ -225,6 +194,9 @@ export default function BudgetDetailsScreen() {
                 {budget.isActive ? "Active Budget" : "Inactive Budget"}
               </Typography>
             </View>
+            <Badge variant={budget.isActive ? "success" : "neutral"}>
+              {budget.isActive ? "Active" : "Inactive"}
+            </Badge>
           </View>
 
           <View style={styles.amountSection}>
@@ -239,23 +211,7 @@ export default function BudgetDetailsScreen() {
             >
               ${totalAllocated}
             </Typography>
-            <Badge variant={budget.isActive ? "success" : "neutral"}>
-              {budget.isActive ? "Active" : "Inactive"}
-            </Badge>
           </View>
-        </Card>
-
-        {/* Budget Overview */}
-        <Card
-          isDark={isDark}
-          style={styles.overviewCard}
-        >
-          <Typography
-            variant="h3"
-            style={[styles.sectionTitle, isDark ? styles.sectionTitleDark : {}]}
-          >
-            Budget Overview
-          </Typography>
 
           <View style={styles.statsGrid}>
             <View style={styles.stat}>
@@ -570,15 +526,8 @@ const styles = StyleSheet.create({
   budgetHeader: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 24,
-  },
-  budgetIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
   },
   budgetInfo: {
     flex: 1,
@@ -602,6 +551,7 @@ const styles = StyleSheet.create({
   },
   amountSection: {
     alignItems: "center",
+    marginBottom: 24,
   },
   amountLabel: {
     fontSize: 14,
@@ -619,9 +569,6 @@ const styles = StyleSheet.create({
   },
   amountDark: {
     color: "#FFF",
-  },
-  overviewCard: {
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 20,

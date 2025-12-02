@@ -128,7 +128,7 @@ export const budgetService = {
       queryParams.append("page", filters.page.toString());
     }
 
-    const url = `/budgets/with-stats${
+    const url = `/budgets${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
     const response = await apiClient.get<{
@@ -144,13 +144,16 @@ export const budgetService = {
         };
       };
     }>(url);
+    console.log("=============with-stats=======================");
+    console.log(response.data.data);
+    console.log("==============with-stats======================");
     return response.data.data;
   },
 
-  async getBudgetById(id: string): Promise<Budget> {
-    const response = await apiClient.get<ApiSuccessResponse<Budget>>(
-      `/budgets/${id}`
-    );
+  async getBudgetById(id: string): Promise<Budget & { stats: BudgetStats }> {
+    const response = await apiClient.get<
+      ApiSuccessResponse<Budget & { stats: BudgetStats }>
+    >(`/budgets/${id}`);
     return extractResponseData(response);
   },
 
