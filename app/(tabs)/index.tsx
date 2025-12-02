@@ -138,12 +138,57 @@ export default function Dashboard() {
     };
   }, [transactions]);
 
-  // Category spending data for pie chart
+  // Category spending data with time filtering
+  const [selectedTimePeriod, setSelectedTimePeriod] = useState<
+    "lastWeek" | "thisWeek" | "lastMonth" | "thisMonth" | "thisYear"
+  >("thisMonth");
+
   const categoryData = useMemo(() => {
     const categoryTotals: { [key: string]: number } = {};
 
+    // Calculate date range based on selected time period
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (selectedTimePeriod) {
+      case "lastWeek":
+        startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "thisWeek":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+        break;
+      case "lastMonth":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        startDate = lastMonth;
+        endDate = lastMonthEnd;
+        break;
+      case "thisMonth":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = now;
+        break;
+      case "thisYear":
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = now;
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = now;
+    }
+
+    // Filter transactions by time period
     transactions
-      .filter((t) => t.transactionType === "EXPENSE")
+      .filter((t) => {
+        const transactionDate = new Date(t.date);
+        return (
+          t.transactionType === "EXPENSE" &&
+          transactionDate >= startDate &&
+          transactionDate <= endDate
+        );
+      })
       .forEach((t) => {
         const category = t.TransactionItems?.[0]?.Category?.name || "Other";
         categoryTotals[category] =
@@ -157,19 +202,22 @@ export default function Dashboard() {
       "#4BC0C0",
       "#9966FF",
       "#FF9F40",
+      "#FF6B6B",
+      "#4ECDC4",
     ];
 
-    return Object.entries(categoryTotals)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 6)
-      .map(([category, amount], index) => ({
-        name: category,
-        amount,
-        color: colors[index % colors.length],
-        legendFontColor: themeColors.text.primary,
-        legendFontSize: 12,
-      }));
-  }, [transactions, themeColors.text.primary]);
+    const sortedCategories = Object.entries(categoryTotals).sort(
+      ([, a], [, b]) => b - a
+    );
+
+    return sortedCategories.slice(0, 8).map(([category, amount], index) => ({
+      name: category,
+      amount,
+      color: colors[index % colors.length],
+      legendFontColor: themeColors.text.primary,
+      legendFontSize: 12,
+    }));
+  }, [transactions, selectedTimePeriod, themeColors.text.primary]);
 
   // Monthly comparison data
   const monthlyData = useMemo(() => {
@@ -210,16 +258,19 @@ export default function Dashboard() {
       };
     });
 
+    // Create clearer comparison data structure
     return {
       labels: monthlyStats.map((stat) => stat.month),
       datasets: [
         {
           data: monthlyStats.map((stat) => stat.income),
           color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
+          strokeWidth: 2,
         },
         {
           data: monthlyStats.map((stat) => stat.expenses),
           color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`,
+          strokeWidth: 2,
         },
       ],
     };
@@ -241,6 +292,11 @@ export default function Dashboard() {
       stroke: colors.primary,
     },
     formatYLabel: (value: string) => `${currencySymbol}${value}`,
+    // Configure individual bar colors for multi-dataset charts
+    barPercentage: 0.7,
+    // Custom properties for better bar spacing
+    showBarTops: false,
+    withScrollableDot: false,
   };
 
   if (accountsLoading || transactionsLoading || budgetsLoading) {
@@ -277,7 +333,12 @@ export default function Dashboard() {
       >
         {/* User Greeting Section */}
         <View style={styles.userGreetingContainer}>
-          <View style={styles.userGreetingCard}>
+          <View
+            style={[
+              styles.userGreetingCard,
+              { backgroundColor: isDark ? "#1C1C1E" : "#FFFFFF" },
+            ]}
+          >
             <View style={styles.userInfo}>
               <View
                 style={[
@@ -436,7 +497,7 @@ export default function Dashboard() {
             >
               <Plus
                 size={32}
-                color={colors.primary}
+                color={colors.text.white}
               />
               <Typography
                 variant="caption"
@@ -458,7 +519,7 @@ export default function Dashboard() {
             >
               <CreditCard
                 size={32}
-                color={colors.secondary}
+                color={colors.text.white}
               />
               <Typography
                 variant="caption"
@@ -480,7 +541,7 @@ export default function Dashboard() {
             >
               <PiggyBank
                 size={32}
-                color={colors.success}
+                color={colors.text.white}
               />
               <Typography
                 variant="caption"
@@ -502,7 +563,7 @@ export default function Dashboard() {
             >
               <BarChart3
                 size={32}
-                color={colors.info}
+                color={colors.text.white}
               />
               <Typography
                 variant="caption"
@@ -589,10 +650,14 @@ export default function Dashboard() {
             {budgets.slice(0, 3).map((budget) => {
               const spent =
                 budget.budgetCategories?.reduce(
-                  (sum, cat) => sum + (cat.spentAmount || 0),
+                  (sum, cat) =>
+                    sum +
+                    ((cat as any).spentAmount
+                      ? Number((cat as any).spentAmount)
+                      : 0),
                   0
                 ) || 0;
-              const allocated = budget.amount || 0;
+              const allocated = Number(budget.amount) || 0;
               const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
               const isOverBudget = spent > allocated;
 
@@ -687,16 +752,168 @@ export default function Dashboard() {
           >
             Spending by Category
           </Typography>
-          <PieChart
-            data={categoryData}
-            width={width - spacing.lg * 2}
-            height={220}
-            chartConfig={chartConfig}
-            accessor="amount"
-            backgroundColor="transparent"
-            paddingLeft="15"
-            absolute
-          />
+
+          {/* Time Period Selector */}
+          <View style={styles.timePeriodSelector}>
+            {[
+              { key: "lastWeek", label: "Last Week" },
+              { key: "thisWeek", label: "This Week" },
+              { key: "lastMonth", label: "Last Month" },
+              { key: "thisMonth", label: "This Month" },
+              { key: "thisYear", label: "This Year" },
+            ].map((period) => (
+              <TouchableOpacity
+                key={period.key}
+                style={[
+                  styles.timePeriodButton,
+                  selectedTimePeriod === period.key &&
+                    styles.timePeriodButtonActive,
+                  {
+                    backgroundColor:
+                      selectedTimePeriod === period.key
+                        ? colors.primary
+                        : themeColors.backgroundSecondary,
+                  },
+                ]}
+                onPress={() =>
+                  setSelectedTimePeriod(
+                    period.key as
+                      | "lastWeek"
+                      | "thisWeek"
+                      | "lastMonth"
+                      | "thisMonth"
+                      | "thisYear"
+                  )
+                }
+              >
+                <Typography
+                  variant="caption"
+                  style={[
+                    styles.timePeriodButtonText,
+                    {
+                      color:
+                        selectedTimePeriod === period.key
+                          ? "#FFFFFF"
+                          : themeColors.text.secondary,
+                    },
+                  ]}
+                >
+                  {period.label}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Category Summary */}
+          {categoryData.length > 0 && (
+            <View style={styles.categorySummary}>
+              <Typography
+                variant="caption"
+                style={[
+                  styles.categorySummaryText,
+                  { color: themeColors.text.tertiary },
+                ]}
+              >
+                {selectedTimePeriod === "lastWeek" &&
+                  "Previous week (7-14 days ago)"}
+                {selectedTimePeriod === "thisWeek" && "This week"}
+                {selectedTimePeriod === "lastMonth" && "Previous month"}
+                {selectedTimePeriod === "thisMonth" && "This month"}
+                {selectedTimePeriod === "thisYear" && "This year"}
+                {" • "}
+                {categoryData.length} categories • Total: {currencySymbol}
+                {categoryData
+                  .reduce((sum, cat) => sum + cat.amount, 0)
+                  .toFixed(2)}
+              </Typography>
+            </View>
+          )}
+
+          {categoryData.length > 0 ? (
+            <PieChart
+              data={categoryData}
+              width={width - spacing.lg * 2}
+              height={240}
+              chartConfig={chartConfig}
+              accessor="amount"
+              backgroundColor="transparent"
+              paddingLeft="15"
+              absolute
+              center={[10, 10]}
+              hasLegend={false}
+            />
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Typography
+                variant="body2"
+                style={[
+                  styles.noDataText,
+                  { color: themeColors.text.tertiary },
+                ]}
+              >
+                No expenses found for this period
+              </Typography>
+              <Typography
+                variant="caption"
+                style={[
+                  styles.noDataSubtext,
+                  { color: themeColors.text.tertiary },
+                ]}
+              >
+                {selectedTimePeriod === "lastWeek" &&
+                  "Add some expenses in the previous week to see your category breakdown"}
+                {selectedTimePeriod === "thisWeek" &&
+                  "Add some expenses this week to see your category breakdown"}
+                {selectedTimePeriod === "lastMonth" &&
+                  "Add some expenses in the previous month to see your category breakdown"}
+                {selectedTimePeriod === "thisMonth" &&
+                  "Add some expenses this month to see your category breakdown"}
+                {selectedTimePeriod === "thisYear" &&
+                  "Add some expenses this year to see your category breakdown"}
+              </Typography>
+            </View>
+          )}
+
+          {/* Category List */}
+          {categoryData.length > 0 && (
+            <View style={styles.categoryList}>
+              {categoryData.slice(0, 5).map((category, index) => (
+                <View
+                  key={category.name}
+                  style={styles.categoryListItem}
+                >
+                  <View style={styles.categoryListLeft}>
+                    <View
+                      style={[
+                        styles.categoryColorDot,
+                        { backgroundColor: category.color },
+                      ]}
+                    />
+                    <Typography
+                      variant="body2"
+                      style={[
+                        styles.categoryName,
+                        { color: themeColors.text.primary },
+                      ]}
+                      numberOfLines={1}
+                    >
+                      {category.name}
+                    </Typography>
+                  </View>
+                  <Typography
+                    variant="body2"
+                    style={[
+                      styles.categoryAmount,
+                      { color: themeColors.text.secondary },
+                    ]}
+                  >
+                    {currencySymbol}
+                    {category.amount.toFixed(2)}
+                  </Typography>
+                </View>
+              ))}
+            </View>
+          )}
         </Card>
 
         {/* Monthly Comparison */}
@@ -708,17 +925,55 @@ export default function Dashboard() {
             variant="h3"
             style={[styles.sectionTitle, { color: themeColors.text.primary }]}
           >
-            Monthly Income vs Expenses
+            Monthly Income vs Expenses Trend
           </Typography>
-          <BarChart
+
+          {/* Legend */}
+          <View style={styles.chartLegend}>
+            <View style={styles.legendItem}>
+              <View
+                style={[styles.legendColor, { backgroundColor: colors.income }]}
+              />
+              <Typography
+                variant="caption"
+                style={[
+                  styles.legendText,
+                  { color: themeColors.text.secondary },
+                ]}
+              >
+                Income
+              </Typography>
+            </View>
+            <View style={styles.legendItem}>
+              <View
+                style={[
+                  styles.legendColor,
+                  { backgroundColor: colors.expense },
+                ]}
+              />
+              <Typography
+                variant="caption"
+                style={[
+                  styles.legendText,
+                  { color: themeColors.text.secondary },
+                ]}
+              >
+                Expenses
+              </Typography>
+            </View>
+          </View>
+
+          <LineChart
             data={monthlyData}
             width={width - spacing.lg * 2}
             height={220}
             chartConfig={chartConfig}
-            showValuesOnTopOfBars
-            yAxisLabel="$"
+            bezier
+            yAxisLabel={`${currencySymbol}`}
             yAxisSuffix=""
             style={styles.chart}
+            fromZero
+            segments={4}
           />
         </Card>
 
@@ -936,11 +1191,11 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xs / 2,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    // shadowColor: "#000",
+    // shadowOffset: { width: 0, height: 2 },
+    // shadowOpacity: 0.1,
+    // shadowRadius: 4,
+    // elevation: 3,
   },
   quickActionText: {
     marginTop: spacing.sm,
@@ -1029,7 +1284,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xs,
   },
   userGreetingCard: {
-    backgroundColor: "#1C1C1E",
     borderRadius: 16,
     padding: spacing.lg,
     flexDirection: "row",
@@ -1078,5 +1332,105 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginLeft: spacing.xs / 2,
+  },
+  chartLegend: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.sm,
+  },
+  legendItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: spacing.md,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: spacing.xs,
+  },
+  legendText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  timePeriodSelector: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginBottom: spacing.md,
+    gap: spacing.xs,
+    maxWidth: width - spacing.lg * 2,
+  },
+  timePeriodButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 16,
+    minWidth: 70,
+    maxWidth: 85,
+    alignItems: "center",
+  },
+  timePeriodButtonActive: {
+    backgroundColor: colors.primary,
+  },
+  timePeriodButtonText: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  categorySummary: {
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  categorySummaryText: {
+    fontSize: 11,
+    textAlign: "center",
+  },
+  categoryList: {
+    marginTop: spacing.sm,
+  },
+  categoryListItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.xs,
+    borderBottomWidth: 0.5,
+    borderBottomColor: "rgba(0,0,0,0.1)",
+  },
+  categoryListLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  categoryColorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: spacing.xs,
+  },
+  categoryName: {
+    fontSize: 13,
+    fontWeight: "400",
+    flex: 1,
+  },
+  categoryAmount: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  noDataContainer: {
+    height: 240,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: spacing.lg,
+  },
+  noDataText: {
+    fontSize: 16,
+    textAlign: "center",
+    marginBottom: spacing.xs,
+  },
+  noDataSubtext: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 16,
   },
 });
