@@ -54,7 +54,6 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: ForgotPasswordDto) => {
     try {
-      console.log("🔐 Attempting login...");
       const successMessage = await forgotPassoword(data.email);
       showSuccess(
         successMessage || "Forgot password successful. Please check your email."
