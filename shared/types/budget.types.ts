@@ -6,14 +6,6 @@ export interface BudgetType {
   isActive: boolean;
 }
 
-export interface BudgetPhilosophy {
-  id: string;
-  name: string;
-  color: string;
-  description?: string;
-  isActive: boolean;
-}
-
 export interface BudgetCategoryStatus {
   id: string;
   name: string;
@@ -47,44 +39,6 @@ export interface BudgetCategory {
   carryOverAmount: number;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface BudgetEntry {
-  id: string;
-  categoryId: string;
-  category: BudgetCategory;
-  transactionItemId: string;
-  transactionItem: any; // Would need TransactionItem type
-  amount: number;
-  date: string;
-  createdAt: string;
-}
-
-export interface BudgetPermission {
-  id: string;
-  name: string;
-  color: string;
-  description?: string;
-  isActive: boolean;
-}
-
-export interface BudgetShare {
-  id: string;
-  budgetId: string;
-  sharedUserId: string;
-  sharedUser: {
-    id: string;
-    fullName: string;
-    email: string;
-  };
-  permissionId: string;
-  permission: BudgetPermission;
-  spendingLimit?: number;
-  categoriesLimit: string[];
-  approvalRequired: boolean;
-  approvalLimit?: number;
-  invitedAt: string;
-  acceptedAt?: string;
 }
 
 export interface BudgetStatus {
