@@ -76,6 +76,12 @@ const AllCategories = () => {
   }, [activeTab, debouncedSearchQuery, getCategories]);
 
   const handleLoadMore = () => {
+    console.log("handleLoadMore called:", {
+      isLoadingMore,
+      hasMore,
+      activeTab,
+      debouncedSearchQuery,
+    });
     if (!isLoadingMore && hasMore) {
       const filters: any = {};
       if (activeTab === "income") {
@@ -86,8 +92,19 @@ const AllCategories = () => {
       if (debouncedSearchQuery.trim()) {
         filters.search = debouncedSearchQuery.trim();
       }
+      console.log(
+        "handleLoadMore calling loadMoreCategories with filters:",
+        filters
+      );
 
       loadMoreCategories(filters);
+    } else {
+      console.log(
+        "handleLoadMore: not calling loadMoreCategories, isLoadingMore:",
+        isLoadingMore,
+        "hasMore:",
+        hasMore
+      );
     }
   };
 

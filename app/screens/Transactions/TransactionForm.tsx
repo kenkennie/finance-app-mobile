@@ -538,20 +538,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                     name={`items.${index}.categoryId`}
                     render={({ field: { onChange, value } }) => (
                       <SearchableDropdown
-                        options={filteredCategories.flatMap((category) => [
-                          {
-                            id: category.id,
-                            label: category.name,
-                            icon: category.icon,
-                            color: category.color,
-                          },
-                          ...(category.children || []).map((child) => ({
-                            id: child.id,
-                            label: child.name,
-                            icon: child.icon,
-                            color: child.color,
-                          })),
-                        ])}
+                        options={filteredCategories.map((category) => ({
+                          id: category.id,
+                          label: category.name,
+                          icon: category.icon,
+                          color: category.color,
+                        }))}
                         value={value}
                         onSelect={onChange}
                         placeholder="Select category"
@@ -789,6 +781,21 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const filteredCategories = categories.filter(
     (cat) => cat.transactionType === selectedTransactionType
   );
+
+  // Debug: Check for duplicate category IDs in options
+  const categoryOptions = filteredCategories.map((category) => ({
+    id: category.id,
+    label: category.name,
+    icon: category.icon,
+    color: category.color,
+  }));
+  const ids = categoryOptions.map((opt) => opt.id);
+  const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+  if (duplicates.length > 0) {
+    console.log("Duplicate category IDs found:", duplicates);
+    console.log("Category options:", categoryOptions);
+    console.log("Filtered categories:", filteredCategories);
+  }
 
   // Filter categories based on transaction type (for edit mode)
   const editFilteredCategories = categories.filter(
@@ -1038,20 +1045,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   name={`items.${index}.categoryId`}
                   render={({ field: { onChange, value } }) => (
                     <SearchableDropdown
-                      options={filteredCategories.flatMap((category) => [
-                        {
-                          id: category.id,
-                          label: category.name,
-                          icon: category.icon,
-                          color: category.color,
-                        },
-                        ...(category.children || []).map((child) => ({
-                          id: child.id,
-                          label: child.name,
-                          icon: child.icon,
-                          color: child.color,
-                        })),
-                      ])}
+                      options={filteredCategories.map((category) => ({
+                        id: category.id,
+                        label: category.name,
+                        icon: category.icon,
+                        color: category.color,
+                      }))}
                       value={value}
                       onSelect={onChange}
                       placeholder="Select category"

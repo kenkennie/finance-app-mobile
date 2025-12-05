@@ -85,6 +85,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     search?: string;
   }): Promise<void> => {
     try {
+      console.log("getCategories called with filters:", filters);
       set({ isLoading: true, error: null });
 
       const response = await categoryService.getCategories(
@@ -94,6 +95,11 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         20, // limit
         0 // offset
       );
+
+      console.log("getCategories response:", {
+        dataLength: response.data?.length,
+        hasMore: response.meta?.hasMore,
+      });
 
       // Flatten the hierarchical categories for flat display
       const flattenCategories = (cats: any[]): any[] => {
@@ -113,13 +119,21 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         return result;
       };
 
+      const flattened = flattenCategories(response.data);
+      console.log(
+        "getCategories setting categories length:",
+        flattened.length,
+        "hasMore:",
+        response.meta?.hasMore ?? false
+      );
       set({
-        categories: flattenCategories(response.data),
+        categories: flattened,
         hasMore: response.meta?.hasMore ?? false,
         isLoading: false,
       });
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.log("getCategories error:", errorMessage);
       set({
         error: errorMessage,
         isLoading: false,
@@ -134,7 +148,15 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   }): Promise<void> => {
     try {
       const { categories, hasMore } = get();
-      if (!hasMore) return;
+      console.log("loadMoreCategories called:", {
+        hasMore,
+        categoriesLength: categories.length,
+        filters,
+      });
+      if (!hasMore) {
+        console.log("loadMoreCategories: hasMore is false, returning");
+        return;
+      }
 
       set({ isLoadingMore: true, error: null });
 
@@ -145,6 +167,11 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         20, // limit
         categories.length // offset
       );
+
+      console.log("loadMoreCategories response:", {
+        dataLength: response.data?.length,
+        hasMore: response.meta?.hasMore,
+      });
 
       // Flatten the hierarchical categories for flat display
       const flattenCategories = (cats: any[]): any[] => {
@@ -165,14 +192,33 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       };
 
       const newCategories = flattenCategories(response.data);
+      console.log(
+        "loadMoreCategories newCategories length:",
+        newCategories.length
+      );
+
+      // Deduplicate by id to prevent infinite looping if API returns duplicates
+      const existingIds = new Set(categories.map((cat) => cat.id));
+      const uniqueNewCategories = newCategories.filter(
+        (cat) => !existingIds.has(cat.id)
+      );
+      console.log(
+        "loadMoreCategories uniqueNewCategories length:",
+        uniqueNewCategories.length
+      );
 
       set({
-        categories: [...categories, ...newCategories],
+        categories: [...categories, ...uniqueNewCategories],
         hasMore: response.meta?.hasMore ?? false,
         isLoadingMore: false,
       });
+      console.log("loadMoreCategories state updated:", {
+        newTotalLength: categories.length + uniqueNewCategories.length,
+        hasMore: response.meta?.hasMore ?? false,
+      });
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.log("loadMoreCategories error:", errorMessage);
       set({
         error: errorMessage,
         isLoadingMore: false,

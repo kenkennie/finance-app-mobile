@@ -21,6 +21,7 @@ import { useBudgetStore } from "@/store/budgetStore";
 import { useToastStore } from "@/store/toastStore";
 import { Budget, BudgetStats } from "@/shared/types/budget.types";
 import { budgetService } from "@/shared/services/budget/budgetService";
+import { TransactionCard } from "@/app/screens/Transactions/TransactionCard";
 import { colors } from "@/theme/colors";
 import { spacing, borderRadius } from "@/theme/spacing";
 
@@ -44,6 +45,14 @@ export default function BudgetDetailsScreen() {
   const [isRenewing, setIsRenewing] = useState(false);
   const [actionModalVisible, setActionModalVisible] = useState(false);
   const [actions, setActions] = useState<Action[]>([]);
+  const [budgetTransactions, setBudgetTransactions] = useState<any[]>([]);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
+  const [transactionsMeta, setTransactionsMeta] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null>(null);
 
   interface Action {
     text: string;
@@ -63,6 +72,36 @@ export default function BudgetDetailsScreen() {
     const budgetData = await getBudgetWithStats(budgetId);
     if (budgetData) {
       setBudgetWithStats(budgetData);
+      // Load transactions for this budget
+      await loadBudgetTransactions();
+    }
+  };
+
+  const loadBudgetTransactions = async (page: number = 1) => {
+    if (!budgetId) return;
+
+    try {
+      setTransactionsLoading(true);
+      const { getBudgetTransactions } = useBudgetStore.getState();
+      const result = await getBudgetTransactions(budgetId, {
+        limit: 10,
+        page,
+        sortBy: "date",
+        sortOrder: "desc",
+      });
+
+      if (result) {
+        if (page === 1) {
+          setBudgetTransactions(result.data);
+        } else {
+          setBudgetTransactions((prev) => [...prev, ...result.data]);
+        }
+        setTransactionsMeta(result.meta);
+      }
+    } catch (error) {
+      console.error("Failed to load budget transactions:", error);
+    } finally {
+      setTransactionsLoading(false);
     }
   };
 
@@ -646,6 +685,103 @@ export default function BudgetDetailsScreen() {
           </Card>
         )}
 
+        {/* Budget Transactions */}
+        <Card
+          isDark={isDark}
+          style={styles.transactionsCard}
+        >
+          <View style={styles.transactionsHeader}>
+            <Typography
+              variant="h3"
+              style={[
+                styles.sectionTitle,
+                isDark ? styles.sectionTitleDark : {},
+              ]}
+            >
+              Recent Transactions
+            </Typography>
+            {transactionsMeta && (
+              <Typography
+                style={[
+                  styles.transactionCount,
+                  isDark ? styles.transactionCountDark : {},
+                ]}
+              >
+                {transactionsMeta.total} transaction
+                {transactionsMeta.total !== 1 ? "s" : ""}
+              </Typography>
+            )}
+          </View>
+
+          {transactionsLoading && budgetTransactions.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator
+                size="small"
+                color={isDark ? colors.text.white : colors.text.primary}
+              />
+              <Typography
+                style={[
+                  styles.loadingText,
+                  isDark ? styles.loadingTextDark : {},
+                ]}
+              >
+                Loading transactions...
+              </Typography>
+            </View>
+          ) : budgetTransactions.length > 0 ? (
+            <View style={styles.transactionsList}>
+              {budgetTransactions.map((transaction) => (
+                <TransactionCard
+                  key={transaction.id}
+                  transaction={transaction}
+                  isDark={isDark}
+                  onPress={() => {
+                    // Navigate to transaction details
+                    router.push(
+                      `/screens/Transactions/TransactionDetails?transactionId=${transaction.id}`
+                    );
+                  }}
+                />
+              ))}
+
+              {transactionsMeta &&
+                transactionsMeta.page < transactionsMeta.totalPages && (
+                  <TouchableOpacity
+                    style={styles.loadMoreButton}
+                    onPress={() =>
+                      loadBudgetTransactions(transactionsMeta.page + 1)
+                    }
+                    disabled={transactionsLoading}
+                  >
+                    {transactionsLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={colors.primary}
+                      />
+                    ) : (
+                      <Typography style={styles.loadMoreText}>
+                        Load More Transactions
+                      </Typography>
+                    )}
+                  </TouchableOpacity>
+                )}
+            </View>
+          ) : (
+            !transactionsLoading && (
+              <View style={styles.emptyState}>
+                <Typography
+                  style={[
+                    styles.emptyStateText,
+                    isDark ? styles.emptyStateTextDark : {},
+                  ]}
+                >
+                  No transactions found for this budget period.
+                </Typography>
+              </View>
+            )
+          )}
+        </Card>
+
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
           <Button
@@ -1042,5 +1178,122 @@ const styles = StyleSheet.create({
   },
   modalTextDark: {
     color: "#D1D5DB",
+  },
+  transactionsCard: {
+    marginBottom: 24,
+  },
+  transactionsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  transactionCount: {
+    fontSize: 14,
+    color: "#6B7280",
+  },
+  transactionCountDark: {
+    color: "#9CA3AF",
+  },
+  loadingContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  transactionsList: {
+    gap: 8,
+  },
+  transactionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  transactionItemDark: {
+    backgroundColor: "#1F2937",
+    borderColor: "#374151",
+  },
+  transactionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#3B82F620",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  transactionIconDark: {
+    backgroundColor: "#3B82F640",
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  transactionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 2,
+  },
+  transactionTitleDark: {
+    color: "#FFF",
+  },
+  transactionDetails: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  categoriesContainer: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  transactionCategory: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  transactionCategoryDark: {
+    color: "#9CA3AF",
+  },
+  transactionDate: {
+    fontSize: 12,
+    color: "#9CA3AF",
+  },
+  transactionDateDark: {
+    color: "#6B7280",
+  },
+  transactionAmount: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  amountIncome: {
+    color: "#10B981",
+  },
+  amountExpense: {
+    color: "#EF4444",
+  },
+  loadMoreButton: {
+    alignItems: "center",
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  loadMoreText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: "500",
+  },
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 32,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+  },
+  emptyStateTextDark: {
+    color: "#9CA3AF",
   },
 });

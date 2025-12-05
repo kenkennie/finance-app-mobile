@@ -210,6 +210,59 @@ export const budgetService = {
     return extractResponseData(response);
   },
 
+  async getBudgetTransactions(
+    id: string,
+    filters?: {
+      limit?: number;
+      page?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    }
+  ): Promise<{
+    data: any[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+
+    if (filters?.limit) {
+      queryParams.append("limit", filters.limit.toString());
+    }
+    if (filters?.page) {
+      queryParams.append("page", filters.page.toString());
+    }
+    if (filters?.sortBy) {
+      queryParams.append("sortBy", filters.sortBy);
+    }
+    if (filters?.sortOrder) {
+      queryParams.append("sortOrder", filters.sortOrder);
+    }
+
+    const url = `/budgets/${id}/transactions${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
+
+    const response = await apiClient.get<{
+      success: boolean;
+      message: string;
+      data: {
+        data: any[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      };
+    }>(url);
+
+    return response.data.data;
+  },
+
   // ============================================
   // BUDGET STATUS TRANSITIONS
   // ============================================

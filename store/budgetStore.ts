@@ -57,6 +57,23 @@ interface BudgetStore extends BudgetState {
   updateBudget: (id: string, data: UpdateBudgetData) => Promise<Budget>;
   deleteBudget: (id: string) => Promise<void>;
   getBudgetStats: (id: string) => Promise<BudgetStats | null>;
+  getBudgetTransactions: (
+    id: string,
+    filters?: {
+      limit?: number;
+      page?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    }
+  ) => Promise<{
+    data: any[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  } | null>;
   setCurrentBudget: (budget: Budget | null) => void;
 
   // Utility actions
@@ -356,6 +373,43 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
 
       set({ isLoading: false });
       return stats;
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      set({
+        error: errorMessage,
+        isLoading: false,
+      });
+      return null;
+    }
+  },
+
+  getBudgetTransactions: async (
+    id: string,
+    filters?: {
+      limit?: number;
+      page?: number;
+      sortBy?: string;
+      sortOrder?: "asc" | "desc";
+    }
+  ): Promise<{
+    data: any[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  } | null> => {
+    try {
+      set({ isLoading: true, error: null });
+
+      const transactions = await budgetService.getBudgetTransactions(
+        id,
+        filters
+      );
+
+      set({ isLoading: false });
+      return transactions;
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
       set({
