@@ -6,8 +6,9 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   useColorScheme,
-  Alert,
+  Modal,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { Header } from "@/shared/components/ui/Header";
@@ -17,7 +18,9 @@ import { Badge } from "@/shared/components/ui/Badge";
 import { Button } from "@/shared/components/ui/Button";
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useBudgetStore } from "@/store/budgetStore";
+import { useToastStore } from "@/store/toastStore";
 import { Budget, BudgetStats } from "@/shared/types/budget.types";
+import { budgetService } from "@/shared/services/budget/budgetService";
 import { colors } from "@/theme/colors";
 import { spacing, borderRadius } from "@/theme/spacing";
 
@@ -29,12 +32,24 @@ export default function BudgetDetailsScreen() {
 
   const { getBudgetWithStats, deleteBudget, isLoading, error } =
     useBudgetStore();
+  const { showSuccess, showError } = useToastStore();
 
   const [budgetWithStats, setBudgetWithStats] = useState<
     (Budget & { stats: BudgetStats }) | null
   >(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPausing, setIsPausing] = useState(false);
+  const [isResuming, setIsResuming] = useState(false);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [actionModalVisible, setActionModalVisible] = useState(false);
+  const [actions, setActions] = useState<Action[]>([]);
+
+  interface Action {
+    text: string;
+    onPress: () => void;
+    icon?: string;
+  }
 
   useEffect(() => {
     if (budgetId) {
@@ -71,7 +86,7 @@ export default function BudgetDetailsScreen() {
       await deleteBudget(budgetId);
       router.replace("/(tabs)/budgets");
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to delete budget");
+      showError(error.message || "Failed to delete budget");
     } finally {
       setIsDeleting(false);
     }
@@ -79,6 +94,111 @@ export default function BudgetDetailsScreen() {
 
   const handleCancelDelete = () => {
     setDeleteModalVisible(false);
+  };
+
+  const handlePauseTracking = async () => {
+    if (!budgetId) return;
+
+    try {
+      setIsPausing(true);
+      await budgetService.pauseTracking(budgetId);
+      showSuccess("Budget tracking paused successfully");
+      await loadBudget(); // Reload budget data
+    } catch (error: any) {
+      showError(error.message || "Failed to pause budget tracking");
+    } finally {
+      setIsPausing(false);
+    }
+  };
+
+  const handleSuspendRenewal = async () => {
+    if (!budgetId) return;
+
+    try {
+      setIsPausing(true);
+      await budgetService.suspendRenewal(budgetId);
+      showSuccess("Budget renewal suspended successfully");
+      await loadBudget(); // Reload budget data
+    } catch (error: any) {
+      showError(error.message || "Failed to suspend budget renewal");
+    } finally {
+      setIsPausing(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!budgetId) return;
+
+    try {
+      setIsPausing(true);
+      await budgetService.archiveBudget(budgetId);
+      showSuccess("Budget archived successfully");
+      await loadBudget(); // Reload budget data
+    } catch (error: any) {
+      showError(error.message || "Failed to archive budget");
+    } finally {
+      setIsPausing(false);
+    }
+  };
+
+  const handleResume = async () => {
+    if (!budgetId) return;
+
+    try {
+      setIsResuming(true);
+      await budgetService.resumeBudget(budgetId);
+      showSuccess("Budget resumed successfully");
+      await loadBudget(); // Reload budget data
+    } catch (error: any) {
+      showError(error.message || "Failed to resume budget");
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
+  const handleResumeTracking = async () => {
+    if (!budgetId) return;
+
+    try {
+      setIsResuming(true);
+      await budgetService.resumeTracking(budgetId);
+      showSuccess("Budget tracking resumed successfully");
+      await loadBudget(); // Reload budget data
+    } catch (error: any) {
+      showError(error.message || "Failed to resume budget tracking");
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
+  const handleRestore = async () => {
+    if (!budgetId) return;
+
+    try {
+      setIsResuming(true);
+      await budgetService.restoreBudget(budgetId);
+      showSuccess("Budget restored successfully");
+      await loadBudget(); // Reload budget data
+    } catch (error: any) {
+      showError(error.message || "Failed to restore budget");
+    } finally {
+      setIsResuming(false);
+    }
+  };
+
+  const handleRenew = async () => {
+    if (!budgetId) return;
+
+    try {
+      setIsRenewing(true);
+      await budgetService.renewBudget(budgetId);
+      showSuccess("Budget renewed successfully");
+      await loadBudget(); // Reload budget data
+    } catch (error: any) {
+      showError(error.message || "Failed to renew budget");
+    } finally {
+      setIsRenewing(false);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -95,9 +215,17 @@ export default function BudgetDetailsScreen() {
   };
 
   const getRecurrenceLabel = (recurrenceId?: string) => {
-    // This would need to be mapped from the recurrence ID
-    // For now, return a placeholder
-    return "Monthly";
+    const periodMap: { [key: string]: string } = {
+      "1": "Weekly",
+      "2": "Monthly",
+      "3": "Quarterly",
+      "4": "Yearly",
+    };
+    return periodMap[recurrenceId || ""] || "One-time";
+  };
+
+  const getStatusDisplay = (budget: Budget & { stats: BudgetStats }) => {
+    return budget.status?.name || "Active";
   };
 
   if (isLoading) {
@@ -149,6 +277,72 @@ export default function BudgetDetailsScreen() {
   const budget = budgetWithStats;
   const stats = budgetWithStats.stats;
 
+  const handleMoreActions = () => {
+    const buttons: Action[] = [];
+    if (budget.status.code === "active") {
+      buttons.push(
+        {
+          text: "Pause Auto-Renewal",
+          onPress: handleSuspendRenewal,
+          icon: "pause-circle",
+        },
+        {
+          text: "Stop Expense Tracking",
+          onPress: handlePauseTracking,
+          icon: "stop-circle",
+        },
+        { text: "Move to Archive", onPress: handleArchive, icon: "archive" }
+      );
+    } else if (budget.status.code === "suspended") {
+      buttons.push(
+        {
+          text: "Reactivate Budget",
+          onPress: handleResume,
+          icon: "play-circle",
+        },
+        {
+          text: "Stop Expense Tracking",
+          onPress: handlePauseTracking,
+          icon: "stop-circle",
+        },
+        { text: "Move to Archive", onPress: handleArchive, icon: "archive" }
+      );
+    } else if (budget.status.code === "paused") {
+      buttons.push(
+        {
+          text: "Reactivate Budget",
+          onPress: handleResume,
+          icon: "play-circle",
+        },
+        {
+          text: "Resume Expense Tracking",
+          onPress: handleResumeTracking,
+          icon: "play",
+        },
+        { text: "Move to Archive", onPress: handleArchive, icon: "archive" }
+      );
+    } else if (budget.status.code === "archived") {
+      buttons.push({
+        text: "Restore from Archive",
+        onPress: handleRestore,
+        icon: "rotate-ccw",
+      });
+    }
+    if (
+      budget.recuringPeriodId &&
+      (budget.status.code === "active" || budget.status.code === "suspended")
+    ) {
+      buttons.push({
+        text: "Renew Budget Now",
+        onPress: handleRenew,
+        icon: "refresh-cw",
+      });
+    }
+    buttons.push({ text: "Cancel", onPress: () => {}, icon: "x" });
+    setActions(buttons);
+    setActionModalVisible(true);
+  };
+
   const totalAllocated = stats.totalAllocated;
   const totalSpent = stats.totalSpent;
   const utilizationPercentage = stats.overallPercentageUsed;
@@ -191,11 +385,14 @@ export default function BudgetDetailsScreen() {
                   isDark ? styles.budgetStatusDark : {},
                 ]}
               >
-                {budget.isActive ? "Active Budget" : "Inactive Budget"}
+                {getStatusDisplay(budget)} Budget
               </Typography>
             </View>
-            <Badge variant={budget.isActive ? "success" : "neutral"}>
-              {budget.isActive ? "Active" : "Inactive"}
+            <Badge
+              variant="custom"
+              customColor={budget.status?.color || colors.primary}
+            >
+              {getStatusDisplay(budget)}
             </Badge>
           </View>
 
@@ -349,12 +546,12 @@ export default function BudgetDetailsScreen() {
             <Typography
               style={[styles.infoLabel, isDark ? styles.infoLabelDark : {}]}
             >
-              Rollover Enabled
+              Carry Over Enabled
             </Typography>
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {budget.rolloverEnabled ? "Yes" : "No"}
+              {budget.carryOverEnabled ? "Yes" : "No"}
             </Typography>
           </View>
         </Card>
@@ -460,6 +657,14 @@ export default function BudgetDetailsScreen() {
           </Button>
 
           <Button
+            onPress={handleMoreActions}
+            variant="secondary"
+            style={styles.actionButton}
+          >
+            More Actions
+          </Button>
+
+          <Button
             onPress={handleDelete}
             variant="danger"
             style={styles.deleteButton}
@@ -469,6 +674,67 @@ export default function BudgetDetailsScreen() {
           </Button>
         </View>
       </ScrollView>
+
+      {actionModalVisible && (
+        <Modal
+          visible={actionModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setActionModalVisible(false)}
+        >
+          <TouchableOpacity
+            style={styles.overlay}
+            activeOpacity={1}
+            onPress={() => setActionModalVisible(false)}
+          >
+            <View style={styles.bottomContainer}>
+              <View
+                style={[
+                  styles.modal,
+                  isDark ? styles.modalDark : styles.modalLight,
+                ]}
+              >
+                <Typography
+                  variant="h3"
+                  style={[
+                    styles.modalTitle,
+                    isDark ? styles.modalTitleDark : {},
+                  ]}
+                >
+                  Actions
+                </Typography>
+                {actions.map((action, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.modalItem}
+                    onPress={() => {
+                      action.onPress();
+                      setActionModalVisible(false);
+                    }}
+                  >
+                    {action.icon && (
+                      <Feather
+                        name={action.icon as any}
+                        size={20}
+                        color={isDark ? "#D1D5DB" : "#374151"}
+                        style={styles.modalIcon}
+                      />
+                    )}
+                    <Typography
+                      style={[
+                        styles.modalText,
+                        isDark ? styles.modalTextDark : {},
+                      ]}
+                    >
+                      {action.text}
+                    </Typography>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
 
       <ConfirmationModal
         visible={deleteModalVisible}
@@ -703,10 +969,78 @@ const styles = StyleSheet.create({
   actionButtons: {
     paddingBottom: 32,
   },
+  recurringActions: {
+    marginBottom: 12,
+    gap: 8,
+  },
+  actionButton: {
+    marginBottom: 8,
+  },
   editButton: {
     marginBottom: 12,
   },
   deleteButton: {
     marginBottom: 12,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  centeredContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bottomContainer: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modal: {
+    backgroundColor: "#FFF",
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalDark: {
+    backgroundColor: "#1F2937",
+  },
+  modalLight: {
+    backgroundColor: "#FFF",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: spacing.md,
+    textAlign: "center",
+  },
+  modalTitleDark: {
+    color: "#FFF",
+  },
+  modalItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.sm,
+  },
+  modalIcon: {
+    marginRight: spacing.sm,
+  },
+  modalText: {
+    fontSize: 16,
+    color: "#374151",
+    textAlign: "center",
+  },
+  modalTextDark: {
+    color: "#D1D5DB",
   },
 });

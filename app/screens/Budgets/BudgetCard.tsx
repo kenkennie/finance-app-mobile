@@ -34,7 +34,6 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
   totalAllocated: backendTotalAllocated,
   totalRemaining: backendTotalRemaining,
   overallPercentageUsed: backendOverallPercentageUsed,
-  categoryStats = [],
 }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -83,12 +82,10 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
           </Text>
           <Badge
             variant="custom"
-            customColor={
-              budget.isActive ? colors.success : colors.text.secondary
-            }
+            customColor={budget.status?.color || colors.text.secondary}
             size="small"
           >
-            {budget.isActive ? "Active" : "Inactive"}
+            {budget.status?.name || "Unknown"}
           </Badge>
         </View>
       </View>

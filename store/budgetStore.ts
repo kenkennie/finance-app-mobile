@@ -41,13 +41,13 @@ interface BudgetStore extends BudgetState {
   // Actions
   createBudget: (data: CreateBudgetData) => Promise<Budget>;
   getBudgets: (filters?: {
-    isActive?: boolean;
+    status?: ("active" | "suspended" | "paused" | "archived")[];
     search?: string;
     page?: number;
     limit?: number;
   }) => Promise<void>;
   loadMoreBudgets: (filters?: {
-    isActive?: boolean;
+    status?: ("active" | "suspended" | "paused" | "archived")[];
     search?: string;
   }) => Promise<void>;
   getBudgetById: (id: string) => Promise<Budget | null>;
@@ -111,12 +111,15 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
       set({ isLoading: true, error: null });
 
       const [budgetsResponse, statsResponse] = await Promise.all([
-        budgetService.getBudgetsWithStats(filters),
+        budgetService.getBudgetsWithStatus(filters),
         budgetService.getOverallBudgetStats(),
       ]);
 
-      // Extract budgets and stats
-      const budgets = budgetsResponse.data.map((item) => ({
+      // Extract budgets and stats (filter out budgets without stats)
+      const budgetsWithStats = budgetsResponse.data.filter(
+        (item) => item.stats
+      );
+      const budgets = budgetsWithStats.map((item) => ({
         ...item,
         stats: undefined, // Remove stats from budget object
       }));
@@ -137,14 +140,16 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
           }[];
         };
       } = {};
-      budgetsResponse.data.forEach((budgetWithStats) => {
-        budgetStats[budgetWithStats.id] = {
-          totalAllocated: budgetWithStats.stats.totalAllocated,
-          totalSpent: budgetWithStats.stats.totalSpent,
-          totalRemaining: budgetWithStats.stats.totalRemaining,
-          overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
-          categoryStats: budgetWithStats.stats.categoryStats,
-        };
+      budgetsWithStats.forEach((budgetWithStats) => {
+        if (budgetWithStats.stats) {
+          budgetStats[budgetWithStats.id] = {
+            totalAllocated: budgetWithStats.stats.totalAllocated,
+            totalSpent: budgetWithStats.stats.totalSpent,
+            totalRemaining: budgetWithStats.stats.totalRemaining,
+            overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
+            categoryStats: budgetWithStats.stats.categoryStats,
+          };
+        }
       });
 
       set({
@@ -180,14 +185,17 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
       set({ isLoadingMore: true, error: null });
 
       const nextPage = currentPagination.page + 1;
-      const budgetsResponse = await budgetService.getBudgetsWithStats({
+      const budgetsResponse = await budgetService.getBudgetsWithStatus({
         ...filters,
         page: nextPage,
         limit: currentPagination.limit,
       });
 
-      // Extract budgets and stats
-      const newBudgets = budgetsResponse.data.map((item) => ({
+      // Extract budgets and stats (filter out budgets without stats)
+      const newBudgetsWithStats = budgetsResponse.data.filter(
+        (item) => item.stats
+      );
+      const newBudgets = newBudgetsWithStats.map((item) => ({
         ...item,
         stats: undefined, // Remove stats from budget object
       }));
@@ -208,14 +216,16 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
           }[];
         };
       } = {};
-      budgetsResponse.data.forEach((budgetWithStats) => {
-        newBudgetStats[budgetWithStats.id] = {
-          totalAllocated: budgetWithStats.stats.totalAllocated,
-          totalSpent: budgetWithStats.stats.totalSpent,
-          totalRemaining: budgetWithStats.stats.totalRemaining,
-          overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
-          categoryStats: budgetWithStats.stats.categoryStats,
-        };
+      newBudgetsWithStats.forEach((budgetWithStats) => {
+        if (budgetWithStats.stats) {
+          newBudgetStats[budgetWithStats.id] = {
+            totalAllocated: budgetWithStats.stats.totalAllocated,
+            totalSpent: budgetWithStats.stats.totalSpent,
+            totalRemaining: budgetWithStats.stats.totalRemaining,
+            overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
+            categoryStats: budgetWithStats.stats.categoryStats,
+          };
+        }
       });
 
       set((state) => ({

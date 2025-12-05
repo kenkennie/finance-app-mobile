@@ -14,14 +14,6 @@ export interface BudgetPhilosophy {
   isActive: boolean;
 }
 
-export interface BudgetStatus {
-  id: string;
-  name: string;
-  color: string;
-  description?: string;
-  isActive: boolean;
-}
-
 export interface BudgetCategoryStatus {
   id: string;
   name: string;
@@ -52,7 +44,7 @@ export interface BudgetCategory {
   categoryId: string;
   category: Category;
   allocatedAmount: number;
-  rolloverAmount: number;
+  carryOverAmount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -95,6 +87,20 @@ export interface BudgetShare {
   acceptedAt?: string;
 }
 
+export interface BudgetStatus {
+  id: string;
+  code: "active" | "suspended" | "paused" | "archived";
+  name: string;
+  description: string;
+  canTrack: boolean;
+  canRenew: boolean;
+  isVisible: boolean;
+  sortOrder: number;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Budget {
   id: string;
   userId: string;
@@ -102,16 +108,24 @@ export interface Budget {
   amount: number;
   startDate: string;
   endDate?: string;
-  isActive: boolean;
+  statusId: string;
+  status: BudgetStatus;
+  pausedAt?: string;
+  pausedReason?: string;
   recuringPeriodId?: string;
   recuringPeriod?: {
     id: string;
     name: string;
   };
-  rolloverEnabled: boolean;
+  carryOverEnabled: boolean;
   budgetCategories?: BudgetCategory[];
   createdAt: string;
   updatedAt: string;
+  // Frontend computed fields
+  daysUntilStart?: number;
+  daysUntilEnd?: number;
+  nextRenewalDate?: string;
+  stats?: BudgetStats;
 }
 
 export interface CategoryBudgetStats {
@@ -162,12 +176,10 @@ export interface BudgetState {
 
 export interface CreateBudgetData {
   name: string;
-  amount: number;
   startDate: string;
   endDate?: string;
   recuringPeriodId?: string;
-  rolloverEnabled: boolean;
-  isActive: boolean;
+  carryOverEnabled: boolean;
   categories: {
     categoryId: string;
     allocatedAmount: number;
@@ -176,12 +188,10 @@ export interface CreateBudgetData {
 
 export interface UpdateBudgetData {
   name?: string;
-  amount?: number;
   startDate?: string;
   endDate?: string;
   recuringPeriodId?: string;
-  rolloverEnabled?: boolean;
-  isActive?: boolean;
+  carryOverEnabled?: boolean;
   categories?: {
     categoryId: string;
     allocatedAmount: number;

@@ -92,11 +92,9 @@ const Budgets = () => {
       try {
         const params: any = {};
 
-        // Add type filter
-        if (activeTab === "active") {
-          params.isActive = true;
-        } else if (activeTab === "inactive") {
-          params.isActive = false;
+        // Add status filter
+        if (activeTab !== "all") {
+          params.status = [activeTab];
         }
 
         // Add search filter
@@ -135,10 +133,8 @@ const Budgets = () => {
     if (isLoadingMore || pagination.page >= pagination.totalPages) return;
 
     const params: any = {};
-    if (activeTab === "active") {
-      params.isActive = true;
-    } else if (activeTab === "inactive") {
-      params.isActive = false;
+    if (activeTab !== "all") {
+      params.status = [activeTab];
     }
     if (debouncedSearchQuery.trim()) {
       params.search = debouncedSearchQuery.trim();
@@ -149,10 +145,8 @@ const Budgets = () => {
 
   const handleRefresh = async () => {
     const params: any = {};
-    if (activeTab === "active") {
-      params.isActive = true;
-    } else if (activeTab === "inactive") {
-      params.isActive = false;
+    if (activeTab !== "all") {
+      params.status = [activeTab];
     }
     if (debouncedSearchQuery.trim()) {
       params.search = debouncedSearchQuery.trim();
@@ -362,7 +356,9 @@ const Budgets = () => {
                 tabs={[
                   { id: "all", label: "All" },
                   { id: "active", label: "Active" },
-                  { id: "inactive", label: "Inactive" },
+                  { id: "suspended", label: "Suspended" },
+                  { id: "paused", label: "Paused" },
+                  { id: "archived", label: "Archived" },
                 ]}
               />
             </Card>

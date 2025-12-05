@@ -35,7 +35,7 @@ export const budgetService = {
   },
 
   async getBudgets(filters?: {
-    isActive?: boolean;
+    status?: ("active" | "suspended" | "paused" | "archived")[];
     startDate?: string;
     endDate?: string;
     search?: string;
@@ -52,8 +52,8 @@ export const budgetService = {
   }> {
     const queryParams = new URLSearchParams();
 
-    if (filters?.isActive !== undefined) {
-      queryParams.append("isActive", filters.isActive.toString());
+    if (filters?.status && filters.status.length > 0) {
+      queryParams.append("status", filters.status.join(","));
     }
     if (filters?.startDate) {
       queryParams.append("startDate", filters.startDate);
@@ -74,6 +74,7 @@ export const budgetService = {
     const url = `/budgets${
       queryParams.toString() ? `?${queryParams.toString()}` : ""
     }`;
+
     const response = await apiClient.get<{
       success: boolean;
       message: string;
@@ -92,7 +93,7 @@ export const budgetService = {
   },
 
   async getBudgetsWithStats(filters?: {
-    isActive?: boolean;
+    status?: ("active" | "suspended" | "paused" | "archived")[];
     startDate?: string;
     endDate?: string;
     search?: string;
@@ -109,8 +110,8 @@ export const budgetService = {
   }> {
     const queryParams = new URLSearchParams();
 
-    if (filters?.isActive !== undefined) {
-      queryParams.append("isActive", filters.isActive.toString());
+    if (filters?.status && filters.status.length > 0) {
+      queryParams.append("status", filters.status.join(","));
     }
     if (filters?.startDate) {
       queryParams.append("startDate", filters.startDate);
@@ -144,9 +145,6 @@ export const budgetService = {
         };
       };
     }>(url);
-    console.log("=============with-stats=======================");
-    console.log(response.data.data);
-    console.log("==============with-stats======================");
     return response.data.data;
   },
 
@@ -177,7 +175,7 @@ export const budgetService = {
 
     return {
       data: result.data,
-      message: result.message || "Budget updated successfully",
+      message: result.message,
     };
   },
 
@@ -210,5 +208,229 @@ export const budgetService = {
       ApiSuccessResponse<OverallBudgetStats>
     >("/budgets/stats/overview");
     return extractResponseData(response);
+  },
+
+  // ============================================
+  // BUDGET STATUS TRANSITIONS
+  // ============================================
+
+  async suspendRenewal(
+    id: string,
+    reason?: string
+  ): Promise<{
+    data: Budget;
+    message: string;
+  }> {
+    const response = await apiClient.put<{
+      success: boolean;
+      message: string;
+      data: Budget;
+    }>(`/budgets/${id}/suspend-renewal`, { reason });
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return {
+      data: result.data,
+      message: result.message || "Budget renewal suspended successfully",
+    };
+  },
+
+  async pauseTracking(
+    id: string,
+    reason?: string
+  ): Promise<{
+    data: Budget;
+    message: string;
+  }> {
+    const response = await apiClient.put<{
+      success: boolean;
+      message: string;
+      data: Budget;
+    }>(`/budgets/${id}/pause-tracking`, { reason });
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return {
+      data: result.data,
+      message: result.message || "Budget tracking paused successfully",
+    };
+  },
+
+  async archiveBudget(
+    id: string,
+    reason?: string
+  ): Promise<{
+    data: Budget;
+    message: string;
+  }> {
+    const response = await apiClient.put<{
+      success: boolean;
+      message: string;
+      data: Budget;
+    }>(`/budgets/${id}/archive`, { reason });
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return {
+      data: result.data,
+      message: result.message || "Budget archived successfully",
+    };
+  },
+
+  async resumeBudget(id: string): Promise<{
+    data: Budget;
+    message: string;
+  }> {
+    const response = await apiClient.put<{
+      success: boolean;
+      message: string;
+      data: Budget;
+    }>(`/budgets/${id}/resume`);
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return {
+      data: result.data,
+      message: result.message || "Budget resumed successfully",
+    };
+  },
+
+  async restoreBudget(id: string): Promise<{
+    data: Budget;
+    message: string;
+  }> {
+    const response = await apiClient.put<{
+      success: boolean;
+      message: string;
+      data: Budget;
+    }>(`/budgets/${id}/restore`);
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return {
+      data: result.data,
+      message: result.message || "Budget restored successfully",
+    };
+  },
+
+  async resumeTracking(id: string): Promise<{
+    data: Budget;
+    message: string;
+  }> {
+    const response = await apiClient.put<{
+      success: boolean;
+      message: string;
+      data: Budget;
+    }>(`/budgets/${id}/resume-tracking`);
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return {
+      data: result.data,
+      message: result.message || "Budget tracking resumed successfully",
+    };
+  },
+
+  async renewBudget(id: string): Promise<{
+    data: Budget;
+    message: string;
+  }> {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+      data: Budget;
+    }>(`/budgets/${id}/renew`);
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return {
+      data: result.data,
+      message: result.message || "Budget renewed successfully",
+    };
+  },
+
+  async getUpcomingBudgets(daysAhead: number = 30): Promise<Budget[]> {
+    const response = await apiClient.get<{
+      success: boolean;
+      message: string;
+      data: Budget[];
+    }>(`/budgets/upcoming/list?daysAhead=${daysAhead}`);
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message);
+    }
+
+    return result.data;
+  },
+
+  async getBudgetsWithStatus(filters?: {
+    status?: ("active" | "suspended" | "paused" | "archived")[];
+    search?: string;
+    limit?: number;
+    page?: number;
+  }): Promise<{
+    data: (Budget & { stats?: BudgetStats })[];
+    meta: {
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+
+    if (filters?.status && filters.status.length > 0) {
+      queryParams.append("status", filters.status.join(","));
+    }
+    if (filters?.search) {
+      queryParams.append("search", filters.search);
+    }
+    if (filters?.limit) {
+      queryParams.append("limit", filters.limit.toString());
+    }
+    if (filters?.page) {
+      queryParams.append("page", filters.page.toString());
+    }
+
+    const url = `/budgets${
+      queryParams.toString() ? `?${queryParams.toString()}` : ""
+    }`;
+    const response = await apiClient.get<{
+      success: boolean;
+      message: string;
+      data: {
+        data: (Budget & { stats?: BudgetStats })[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      };
+    }>(url);
+
+    return response.data.data;
   },
 };

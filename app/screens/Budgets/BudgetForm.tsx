@@ -4,23 +4,20 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
   useColorScheme,
   TouchableOpacity,
-  Switch,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Controller, useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 
 import { Header } from "@/shared/components/ui/Header";
 import { Card } from "@/shared/components/ui/Card";
 import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
-import { Checkbox } from "@/shared/components/ui/Checkbox";
 import SearchableDropdown from "@/shared/components/ui/SearchableDropdown";
-import DatePicker from "@/shared/components/ui/pickers/DatePicker";
+import DateRangeSelector from "@/shared/components/ui/pickers/DateRangeSelector";
 import { Typography } from "@/shared/components/ui/Typography";
 import { budgetService } from "@/shared/services/budget/budgetService";
 import { categoryService } from "@/shared/services/category/categoryService";
@@ -36,6 +33,7 @@ import {
 import { colors } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import SettingRow from "../Accounts/SettingRow";
+import { useToastStore } from "@/store/toastStore";
 
 interface BudgetFormProps {
   mode: "create" | "edit";
@@ -46,6 +44,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { showSuccess, showError } = useToastStore();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
@@ -61,8 +60,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       startDate: new Date().toISOString().split("T")[0],
       endDate: "",
       recuringPeriodId: "",
-      rolloverEnabled: false,
-      isActive: true,
+      carryOverEnabled: false,
       categories: [{ categoryId: "", allocatedAmount: 0 }],
     },
   });
@@ -75,8 +73,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       startDate: "",
       endDate: "",
       recuringPeriodId: "",
-      rolloverEnabled: false,
-      isActive: true,
+      carryOverEnabled: false,
       categories: [],
     },
   });
@@ -93,7 +90,6 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
   });
 
   // Get current form and categories array based on mode
-  const currentForm = mode === "create" ? createForm : editForm;
   const currentCategoriesArray =
     mode === "create" ? createCategoriesArray : editCategoriesArray;
   const { fields, append, remove, update } = currentCategoriesArray;
@@ -112,7 +108,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       setCategories(result.data || []);
     } catch (error) {
       console.error("Failed to load categories:", error);
-      Alert.alert("Error", "Failed to load categories");
+      showError("Failed to load categories");
     } finally {
       setIsLoadingCategories(false);
     }
@@ -130,8 +126,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
         startDate: budget.startDate.split("T")[0],
         endDate: budget.endDate ? budget.endDate.split("T")[0] : "",
         recuringPeriodId: budget.recuringPeriodId || "",
-        rolloverEnabled: budget.rolloverEnabled,
-        isActive: budget.isActive,
+        carryOverEnabled: budget.carryOverEnabled,
         categories:
           budget.budgetCategories?.map((cat) => ({
             categoryId: cat.categoryId,
@@ -140,7 +135,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       });
     } catch (error) {
       console.error("Failed to load budget:", error);
-      Alert.alert("Error", "Failed to load budget data");
+      showError("Failed to load budget data");
       router.back();
     } finally {
       setIsLoadingBudget(false);
@@ -153,27 +148,25 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
     setIsLoading(true);
     try {
       if (mode === "create") {
-        await budgetService.createBudget(data as CreateBudgetData);
-        Alert.alert("Success", "Budget created successfully!", [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)/budgets"),
-          },
-        ]);
+        const response = await budgetService.createBudget(
+          data as CreateBudgetData
+        );
+        showSuccess(response.message);
+        setTimeout(() => {
+          router.replace("/(tabs)/budgets");
+        }, 100);
       } else if (mode === "edit" && budgetId) {
-        await budgetService.updateBudget(budgetId, data as UpdateBudgetData);
-        Alert.alert("Success", "Budget updated successfully!", [
-          {
-            text: "OK",
-            onPress: () =>
-              router.replace(
-                `/screens/Budgets/BudgetDetails?budgetId=${budgetId}`
-              ),
-          },
-        ]);
+        const response = await budgetService.updateBudget(
+          budgetId,
+          data as UpdateBudgetData
+        );
+        showSuccess(response.message);
+        setTimeout(() => {
+          router.replace(`/screens/Budgets/BudgetDetails?budgetId=${budgetId}`);
+        }, 100);
       }
     } catch (error: any) {
-      Alert.alert("Error", error.message || `Failed to ${mode} budget`);
+      showError(error.message || `Failed to ${mode} budget`);
     } finally {
       setIsLoading(false);
     }
@@ -233,6 +226,8 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       handleSubmit,
       formState: { errors },
       watch,
+      clearErrors,
+      setValue,
     } = createForm;
 
     return (
@@ -266,29 +261,13 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
             )}
           />
 
-          <Controller
-            control={control}
-            name="startDate"
-            render={({ field: { onChange, value } }) => (
-              <DatePicker
-                label="Start Date"
-                value={value}
-                onChange={(date) => onChange(date.toISOString().split("T")[0])}
-                error={errors.startDate?.message}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="endDate"
-            render={({ field: { onChange, value } }) => (
-              <DatePicker
-                label="End Date (Optional)"
-                value={value || ""}
-                onChange={(date) => onChange(date.toISOString().split("T")[0])}
-              />
-            )}
+          <DateRangeSelector
+            startDate={watch("startDate")}
+            endDate={watch("endDate")}
+            onStartDateChange={(date) => setValue("startDate", date)}
+            onEndDateChange={(date) => setValue("endDate", date)}
+            startError={errors.startDate?.message}
+            endError={errors.endDate?.message}
           />
 
           <Controller
@@ -389,9 +368,11 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
                       value={item.categoryId}
                       onSelect={(newCategoryId) => {
                         update(index, { ...item, categoryId: newCategoryId });
+                        clearErrors(`categories.${index}.categoryId`);
                       }}
                       placeholder="Select category"
                       label="Category"
+                      error={errors.categories?.[index]?.categoryId?.message}
                     />
 
                     <View style={styles.amountInputs}>
@@ -401,11 +382,15 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
                         onChangeText={(value) => {
                           const amount = parseFloat(value) || 0;
                           update(index, { ...item, allocatedAmount: amount });
+                          clearErrors(`categories.${index}.allocatedAmount`);
                         }}
                         placeholder="0.00"
                         keyboardType="numeric"
                         leftIcon="dollar"
                         isDark={isDark}
+                        error={
+                          errors.categories?.[index]?.allocatedAmount?.message
+                        }
                       />
                     </View>
                   </View>
@@ -421,7 +406,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
                     (!fields[fields.length - 1].categoryId ||
                       fields[fields.length - 1].allocatedAmount <= 0)
                   ) {
-                    Alert.alert("Please fill the current category first");
+                    showError("Please fill the current category first");
                     return;
                   }
                   append({ categoryId: "", allocatedAmount: 0 });
@@ -443,34 +428,38 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
               </TouchableOpacity>
             </Card>
 
-            {errors.categories && (
-              <Typography style={styles.errorText}>
-                Error in categories
-              </Typography>
-            )}
+            {errors.categories &&
+              typeof errors.categories === "object" &&
+              "message" in errors.categories && (
+                <Typography style={styles.errorText}>
+                  {errors.categories.message}
+                </Typography>
+              )}
+            {errors.categories &&
+              Array.isArray(errors.categories) &&
+              errors.categories.map(
+                (error, index) =>
+                  error && (
+                    <Typography
+                      key={index}
+                      style={styles.errorText}
+                    >
+                      Item {index + 1}:{" "}
+                      {error.categoryId?.message ||
+                        error.allocatedAmount?.message ||
+                        "Invalid category"}
+                    </Typography>
+                  )
+              )}
           </View>
 
           <Card isDark={isDark}>
             <Controller
               control={control}
-              name="isActive"
+              name="carryOverEnabled"
               render={({ field: { onChange, value } }) => (
                 <SettingRow
-                  label="Is Active"
-                  value={value ?? true}
-                  onValueChange={onChange}
-                />
-              )}
-            />
-          </Card>
-
-          <Card isDark={isDark}>
-            <Controller
-              control={control}
-              name="rolloverEnabled"
-              render={({ field: { onChange, value } }) => (
-                <SettingRow
-                  label="Enable Rollover"
+                  label="Enable carryOver"
                   value={value ?? true}
                   onValueChange={onChange}
                 />

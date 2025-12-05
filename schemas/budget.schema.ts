@@ -14,11 +14,15 @@ export const CreateBudgetSchema = z
     startDate: z.coerce.date(),
     endDate: z.coerce.date(),
     recuringPeriodId: z.string().optional(),
-    rolloverEnabled: z.boolean().default(false),
+    carryOverEnabled: z.boolean().default(false),
     isActive: z.boolean().default(true),
     categories: z
       .array(BudgetCategoryItemSchema)
       .min(1, "At least one category is required"),
+    color: z
+      .string()
+      .regex(/^#[0-9A-F]{6}$/i, "Invalid color format")
+      .default("#10B981"),
   })
   .refine(
     (data) => {
@@ -39,11 +43,16 @@ export const UpdateBudgetSchema = z
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     recuringPeriodId: z.string().optional(),
-    rolloverEnabled: z.boolean().optional(),
+    carryOverEnabled: z.boolean().optional(),
     isActive: z.boolean().optional(),
     categories: z
       .array(BudgetCategoryItemSchema)
       .min(1, "At least one category is required")
+      .optional(),
+    color: z
+      .string()
+      .regex(/^#[0-9A-F]{6}$/i, "Invalid color format")
+      .default("#10B981")
       .optional(),
   })
   .refine(
