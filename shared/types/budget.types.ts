@@ -89,7 +89,7 @@ export interface BudgetShare {
 
 export interface BudgetStatus {
   id: string;
-  code: "active" | "suspended" | "paused" | "archived";
+  code: string;
   name: string;
   description: string;
   canTrack: boolean;

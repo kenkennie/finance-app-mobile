@@ -35,7 +35,7 @@ export const budgetService = {
   },
 
   async getBudgets(filters?: {
-    status?: ("active" | "suspended" | "paused" | "archived")[];
+    status?: string[];
     startDate?: string;
     endDate?: string;
     search?: string;
@@ -93,7 +93,7 @@ export const budgetService = {
   },
 
   async getBudgetsWithStats(filters?: {
-    status?: ("active" | "suspended" | "paused" | "archived")[];
+    status?: string[];
     startDate?: string;
     endDate?: string;
     search?: string;
@@ -386,7 +386,7 @@ export const budgetService = {
   },
 
   async getBudgetsWithStatus(filters?: {
-    status?: ("active" | "suspended" | "paused" | "archived")[];
+    status?: string[];
     search?: string;
     limit?: number;
     page?: number;
