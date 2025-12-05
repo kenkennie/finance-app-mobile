@@ -59,7 +59,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       name: "",
       startDate: new Date().toISOString().split("T")[0],
       endDate: "",
-      recuringPeriodId: "",
+      recuringPeriodId: undefined,
       carryOverEnabled: false,
       categories: [{ categoryId: "", allocatedAmount: 0 }],
     },
@@ -72,7 +72,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       name: "",
       startDate: "",
       endDate: "",
-      recuringPeriodId: "",
+      recuringPeriodId: undefined,
       carryOverEnabled: false,
       categories: [],
     },
@@ -125,7 +125,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
         name: budget.name,
         startDate: budget.startDate.split("T")[0],
         endDate: budget.endDate ? budget.endDate.split("T")[0] : "",
-        recuringPeriodId: budget.recuringPeriodId || "",
+        recuringPeriodId: budget.recuringPeriodId || undefined,
         carryOverEnabled: budget.carryOverEnabled,
         categories:
           budget.budgetCategories?.map((cat) => ({
@@ -147,9 +147,16 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
   ) => {
     setIsLoading(true);
     try {
+      // Convert empty string to undefined for recuringPeriodId
+      const processedData = {
+        ...data,
+        recuringPeriodId:
+          data.recuringPeriodId === "" ? undefined : data.recuringPeriodId,
+      };
+
       if (mode === "create") {
         const response = await budgetService.createBudget(
-          data as CreateBudgetData
+          processedData as CreateBudgetData
         );
         showSuccess(response.message);
         setTimeout(() => {
@@ -158,7 +165,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       } else if (mode === "edit" && budgetId) {
         const response = await budgetService.updateBudget(
           budgetId,
-          data as UpdateBudgetData
+          processedData as UpdateBudgetData
         );
         showSuccess(response.message);
         setTimeout(() => {
@@ -192,6 +199,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
   }));
 
   const periodOptions = [
+    { id: "", label: "None" },
     { id: "1", label: "Weekly" },
     { id: "2", label: "Monthly" },
     { id: "3", label: "Quarterly" },
@@ -277,8 +285,10 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
               <SearchableDropdown
                 label="Recurring Period"
                 options={periodOptions}
-                value={value}
-                onSelect={onChange}
+                value={value || ""}
+                onSelect={(selectedValue) =>
+                  onChange(selectedValue === "" ? undefined : selectedValue)
+                }
                 placeholder="Select recurring period"
               />
             )}

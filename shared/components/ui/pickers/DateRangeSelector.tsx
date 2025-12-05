@@ -9,6 +9,8 @@ import {
   endOfMonth,
   startOfYear,
   endOfYear,
+  addWeeks,
+  addMonths,
 } from "date-fns";
 import { Typography } from "../Typography";
 import DatePicker from "./DatePicker";
@@ -33,10 +35,24 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
 }) => {
   const { isDark } = useTheme();
   const [selectedMode, setSelectedMode] = useState<
-    "Today" | "This Week" | "This Month" | "This Year" | "Custom"
+    | "Today"
+    | "This Week"
+    | "Next Week"
+    | "This Month"
+    | "Next Month"
+    | "This Year"
+    | "Custom"
   >("Custom");
 
-  const presets = ["Today", "This Week", "This Month", "This Year", "Custom"];
+  const presets = [
+    "Today",
+    "This Week",
+    "Next Week",
+    "This Month",
+    "Next Month",
+    "This Year",
+    "Custom",
+  ];
 
   const handlePresetSelect = (mode: typeof selectedMode) => {
     setSelectedMode(mode);
@@ -53,9 +69,17 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
           start = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
           end = endOfWeek(now, { weekStartsOn: 1 });
           break;
+        case "Next Week":
+          start = startOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+          end = endOfWeek(addWeeks(now, 1), { weekStartsOn: 1 });
+          break;
         case "This Month":
           start = startOfMonth(now);
           end = endOfMonth(now);
+          break;
+        case "Next Month":
+          start = startOfMonth(addMonths(now, 1));
+          end = endOfMonth(addMonths(now, 1));
           break;
         case "This Year":
           start = startOfYear(now);
@@ -73,7 +97,7 @@ const DateRangeSelector: React.FC<DateRangeSelectorProps> = ({
   return (
     <View style={styles.container}>
       <Typography style={[styles.label, isDark && styles.labelDark]}>
-        Date Range
+        Date
       </Typography>
       <View style={styles.presetContainer}>
         {presets.map((preset) => (
