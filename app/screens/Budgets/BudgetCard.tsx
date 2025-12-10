@@ -15,6 +15,9 @@ interface BudgetCardProps {
   totalAllocated?: number;
   totalRemaining?: number;
   overallPercentageUsed?: number;
+  currency?: string;
+  formattedEndDate?: string;
+  formattedStartDate?: string;
   categoryStats?: {
     categoryId: string;
     categoryName: string;
@@ -31,36 +34,18 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
   onLongPress,
   isDark = false,
   spentAmount = 0,
-  totalAllocated: backendTotalAllocated,
-  totalRemaining: backendTotalRemaining,
-  overallPercentageUsed: backendOverallPercentageUsed,
+  totalAllocated = 0,
+  totalRemaining = 0,
+  overallPercentageUsed = 0,
 }) => {
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
-  // All calculations now come from backend - no fallbacks
-  const totalAllocated = backendTotalAllocated!;
-  const totalSpent = spentAmount;
-  const remainingAmount = backendTotalRemaining!;
-  const utilizationPercentage = backendOverallPercentageUsed!;
-
   const getProgressBarColor = () => {
-    if (utilizationPercentage > 100) return colors.error;
-    if (utilizationPercentage > 80) return colors.warning;
+    if (overallPercentageUsed > 100) return colors.error;
+    if (overallPercentageUsed > 80) return colors.warning;
     return colors.primary;
   };
 
   const getRemainingAmountColor = () => {
-    if (remainingAmount >= 0) return colors.success;
+    if (totalRemaining >= 0) return colors.success;
     return colors.error;
   };
 
@@ -97,7 +82,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
             Allocated
           </Text>
           <Text style={[styles.statValue, isDark && styles.statValueDark]}>
-            {formatCurrency(totalAllocated)}
+            {totalAllocated}
           </Text>
         </View>
 
@@ -106,7 +91,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
             Spent
           </Text>
           <Text style={[styles.statValue, isDark && styles.statValueDark]}>
-            {formatCurrency(totalSpent)}
+            {spentAmount}
           </Text>
         </View>
 
@@ -121,7 +106,7 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
               isDark && styles.statValueDark,
             ]}
           >
-            {formatCurrency(remainingAmount)}
+            {totalRemaining}
           </Text>
         </View>
       </View>
@@ -133,14 +118,14 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
             style={[
               styles.progressFill,
               {
-                width: `${Math.min(utilizationPercentage, 100)}%`,
+                width: `${Math.min(overallPercentageUsed, 100)}%`,
                 backgroundColor: getProgressBarColor(),
               },
             ]}
           />
         </View>
         <Text style={[styles.progressText, isDark && styles.progressTextDark]}>
-          {utilizationPercentage.toFixed(1)}% used
+          {overallPercentageUsed}% used
         </Text>
       </View>
 
@@ -153,8 +138,8 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
             color={isDark ? "#9CA3AF" : "#6B7280"}
           />
           <Text style={[styles.dateText, isDark && styles.dateTextDark]}>
-            {formatDate(budget.startDate)}
-            {budget.endDate && ` - ${formatDate(budget.endDate)}`}
+            {budget.formattedStartDate}
+            {budget.formattedEndDate && ` - ${budget.formattedEndDate}`}
           </Text>
         </View>
         <Text

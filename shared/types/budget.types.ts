@@ -59,7 +59,6 @@ export interface Budget {
   id: string;
   userId: string;
   name: string;
-  amount: number;
   startDate: string;
   endDate?: string;
   statusId: string;
@@ -67,11 +66,14 @@ export interface Budget {
   pausedAt?: string;
   pausedReason?: string;
   recuringPeriodId?: string;
+  formattedStartDate: string;
+  formattedEndDate: string;
   recuringPeriod?: {
     id: string;
     name: string;
   };
   carryOverEnabled: boolean;
+  currency: string;
   budgetCategories?: BudgetCategory[];
   createdAt: string;
   updatedAt: string;
@@ -79,7 +81,7 @@ export interface Budget {
   daysUntilStart?: number;
   daysUntilEnd?: number;
   nextRenewalDate?: string;
-  stats?: BudgetStats;
+  stats?: BudgetDetails;
 }
 
 export interface CategoryBudgetStats {
@@ -92,11 +94,12 @@ export interface CategoryBudgetStats {
   isOverBudget: boolean;
 }
 
-export interface BudgetStats {
+export interface BudgetDetails {
   budgetId: string;
   budgetName: string;
   startDate: string;
   endDate: string | null;
+  currency: string;
   totalAllocated: number;
   totalSpent: number;
   totalRemaining: number;
@@ -106,6 +109,7 @@ export interface BudgetStats {
 }
 
 export interface OverallBudgetStats {
+  currency?: string;
   totalBudgets: number;
   activeBudgets: number;
   totalAllocated: number;

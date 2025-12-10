@@ -5,11 +5,13 @@ import { View, Text, StyleSheet } from "react-native";
 
 interface SettingRowProps {
   label: string;
+  description?: string;
   value: boolean;
   onValueChange: (value: boolean) => void;
 }
 const SettingRow: React.FC<SettingRowProps> = ({
   label,
+  description,
   value,
   onValueChange,
 }) => {
@@ -17,7 +19,14 @@ const SettingRow: React.FC<SettingRowProps> = ({
 
   return (
     <View style={[styles.row, isDark && styles.rowDark]}>
-      <Text style={[styles.label, isDark && styles.labelDark]}>{label}</Text>
+      <View style={styles.labelContainer}>
+        <Text style={[styles.label, isDark && styles.labelDark]}>{label}</Text>
+        {description && (
+          <Text style={[styles.description, isDark && styles.descriptionDark]}>
+            {description}
+          </Text>
+        )}
+      </View>
       <SwitchButton
         value={value}
         onValueChange={onValueChange}
@@ -43,6 +52,17 @@ const styles = StyleSheet.create({
   },
   labelDark: {
     color: "#FFF",
+  },
+  labelContainer: {
+    flex: 1,
+  },
+  description: {
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  descriptionDark: {
+    color: "#9CA3AF",
   },
 });
 export default SettingRow;

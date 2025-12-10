@@ -155,13 +155,6 @@ const Budgets = () => {
     await getBudgets(params);
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
   const renderBudgetCard = ({ item: budget }: { item: Budget }) => {
     const stats = budgetStats[budget.id];
     const spentAmount = stats?.totalSpent || 0;
@@ -182,6 +175,8 @@ const Budgets = () => {
         totalRemaining={totalRemaining}
         overallPercentageUsed={overallPercentageUsed}
         categoryStats={categoryStats}
+        formattedEndDate={budget.formattedEndDate}
+        formattedStartDate={budget.formattedStartDate}
       />
     );
   };
@@ -296,7 +291,8 @@ const Budgets = () => {
                       variant="h2"
                       style={[styles.summaryValue, styles.allocatedValue]}
                     >
-                      {formatCurrency(overallStats.totalAllocated)}
+                      {overallStats?.currency}
+                      {overallStats.totalAllocated}
                     </Typography>
                   </View>
 
@@ -314,7 +310,8 @@ const Budgets = () => {
                       variant="h2"
                       style={[styles.summaryValue, styles.spentValue]}
                     >
-                      {formatCurrency(overallStats.totalSpent)}
+                      {overallStats?.currency}
+                      {overallStats.totalSpent}
                     </Typography>
                   </View>
 
@@ -337,7 +334,8 @@ const Budgets = () => {
                           : styles.remainingNegative,
                       ]}
                     >
-                      {formatCurrency(overallStats.totalRemaining)}
+                      {overallStats?.currency}
+                      {overallStats.totalRemaining}
                     </Typography>
                   </View>
                 </View>

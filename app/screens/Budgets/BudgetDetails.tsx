@@ -19,11 +19,11 @@ import { Button } from "@/shared/components/ui/Button";
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useBudgetStore } from "@/store/budgetStore";
 import { useToastStore } from "@/store/toastStore";
-import { Budget, BudgetStats } from "@/shared/types/budget.types";
+import { Budget, BudgetDetails } from "@/shared/types/budget.types";
 import { budgetService } from "@/shared/services/budget/budgetService";
 import { TransactionCard } from "@/app/screens/Transactions/TransactionCard";
 import { colors } from "@/theme/colors";
-import { spacing, borderRadius } from "@/theme/spacing";
+import { spacing, borderRadius, fontSize } from "@/theme/spacing";
 
 export default function BudgetDetailsScreen() {
   const { budgetId } = useLocalSearchParams<{ budgetId: string }>();
@@ -36,7 +36,7 @@ export default function BudgetDetailsScreen() {
   const { showSuccess, showError } = useToastStore();
 
   const [budgetWithStats, setBudgetWithStats] = useState<
-    (Budget & { stats: BudgetStats }) | null
+    (Budget & { stats: BudgetDetails }) | null
   >(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -240,13 +240,6 @@ export default function BudgetDetailsScreen() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount);
-  };
-
   const getProgressColor = (percentage: number) => {
     if (percentage >= 100) return colors.error;
     if (percentage >= 80) return colors.warning;
@@ -263,7 +256,7 @@ export default function BudgetDetailsScreen() {
     return periodMap[recurrenceId || ""] || "One-time";
   };
 
-  const getStatusDisplay = (budget: Budget & { stats: BudgetStats }) => {
+  const getStatusDisplay = (budget: Budget & { stats: BudgetDetails }) => {
     return budget.status?.name || "Active";
   };
 
@@ -314,6 +307,10 @@ export default function BudgetDetailsScreen() {
   }
 
   const budget = budgetWithStats;
+  console.log("====================================");
+  console.log(budget);
+  console.log("====================================");
+
   const stats = budgetWithStats.stats;
 
   const handleMoreActions = () => {
@@ -384,7 +381,7 @@ export default function BudgetDetailsScreen() {
 
   const totalAllocated = stats.totalAllocated;
   const totalSpent = stats.totalSpent;
-  const utilizationPercentage = stats.overallPercentageUsed;
+  // const utilizationPercentage = stats.overallPercentageUsed;
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
@@ -445,7 +442,8 @@ export default function BudgetDetailsScreen() {
               variant="h1"
               style={[styles.amount, isDark ? styles.amountDark : {}]}
             >
-              ${totalAllocated}
+              {budget.currency}
+              {totalAllocated}
             </Typography>
           </View>
 
@@ -461,7 +459,8 @@ export default function BudgetDetailsScreen() {
                 variant="h2"
                 style={[styles.statValue, isDark ? styles.statValueDark : {}]}
               >
-                {formatCurrency(totalSpent)}
+                {budget.currency}
+                {totalSpent}
               </Typography>
             </View>
 
@@ -479,13 +478,12 @@ export default function BudgetDetailsScreen() {
                   isDark ? styles.statValueDark : {},
                   {
                     color:
-                      totalAllocated - totalSpent >= 0
-                        ? colors.success
-                        : colors.error,
+                      stats.totalRemaining >= 0 ? colors.success : colors.error,
                   },
                 ]}
               >
-                {formatCurrency(totalAllocated - totalSpent)}
+                {budget.currency}
+                {stats.totalRemaining}
               </Typography>
             </View>
 
@@ -500,7 +498,7 @@ export default function BudgetDetailsScreen() {
                 variant="h2"
                 style={[styles.statValue, isDark ? styles.statValueDark : {}]}
               >
-                {utilizationPercentage.toFixed(1)}%
+                {stats.overallPercentageUsed}%
               </Typography>
             </View>
           </View>
@@ -510,8 +508,10 @@ export default function BudgetDetailsScreen() {
               style={[
                 styles.progressBar,
                 {
-                  width: `${Math.min(utilizationPercentage, 100)}%`,
-                  backgroundColor: getProgressColor(utilizationPercentage),
+                  width: `${Math.min(stats.overallPercentageUsed, 100)}%`,
+                  backgroundColor: getProgressColor(
+                    stats.overallPercentageUsed
+                  ),
                 },
               ]}
             />
@@ -539,12 +539,7 @@ export default function BudgetDetailsScreen() {
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {new Date(budget.startDate).toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {budget.formattedStartDate}
             </Typography>
           </View>
 
@@ -558,12 +553,7 @@ export default function BudgetDetailsScreen() {
               <Typography
                 style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
               >
-                {new Date(budget.endDate).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {budget.formattedEndDate}
               </Typography>
             </View>
           )}
@@ -612,12 +602,6 @@ export default function BudgetDetailsScreen() {
             </Typography>
 
             {stats.categoryStats.map((categoryStat) => {
-              const categoryProgress =
-                categoryStat.allocatedAmount > 0
-                  ? (categoryStat.spentAmount / categoryStat.allocatedAmount) *
-                    100
-                  : 0;
-
               return (
                 <View
                   key={categoryStat.categoryId}
@@ -649,8 +633,9 @@ export default function BudgetDetailsScreen() {
                           isDark ? styles.categoryDescriptionDark : {},
                         ]}
                       >
-                        {formatCurrency(categoryStat.spentAmount)} of{" "}
-                        {formatCurrency(categoryStat.allocatedAmount)}
+                        {stats?.currency} {categoryStat.spentAmount} of{" "}
+                        {stats?.currency}
+                        {categoryStat.allocatedAmount}
                       </Typography>
                     </View>
                   </View>
@@ -659,21 +644,26 @@ export default function BudgetDetailsScreen() {
                       variant={
                         categoryStat.isOverBudget
                           ? "error"
-                          : categoryProgress >= 80
+                          : categoryStat.percentageUsed >= 80
                           ? "warning"
                           : "success"
                       }
                       size="small"
                     >
-                      {categoryProgress.toFixed(1)}%
+                      {categoryStat.percentageUsed.toFixed(1)}%
                     </Badge>
                     <View style={styles.categoryProgress}>
                       <View
                         style={[
                           styles.categoryProgressBar,
                           {
-                            width: `${Math.min(categoryProgress, 100)}%`,
-                            backgroundColor: getProgressColor(categoryProgress),
+                            width: `${Math.min(
+                              categoryStat.percentageUsed,
+                              100
+                            )}%`,
+                            backgroundColor: getProgressColor(
+                              categoryStat.percentageUsed
+                            ),
                           },
                         ]}
                       />
@@ -999,6 +989,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     color: colors.text.primary,
+    fontSize: fontSize.lg,
   },
   statValueDark: {
     color: colors.text.white,

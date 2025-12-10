@@ -5,7 +5,6 @@ export interface User {
   phoneNumber?: string;
   avatar?: string;
   currency?: string;
-  emailVerifiedAt?: Date;
 }
 
 export interface AuthState {

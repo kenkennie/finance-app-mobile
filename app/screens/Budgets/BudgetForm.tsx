@@ -469,7 +469,8 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
               name="carryOverEnabled"
               render={({ field: { onChange, value } }) => (
                 <SettingRow
-                  label="Enable carryOver"
+                  label="Enable Carry Over"
+                  description="Automatically carry unused budget amounts to the next period"
                   value={value ?? true}
                   onValueChange={onChange}
                 />
@@ -499,6 +500,15 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
       </View>
     );
   } else {
+    const {
+      control,
+      handleSubmit,
+      formState: { errors },
+      watch,
+      clearErrors,
+      setValue,
+    } = editForm;
+
     return (
       <View style={[styles.container, isDark && styles.containerDark]}>
         <Header
@@ -507,9 +517,257 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
           onBackPress={() => router.back()}
           isDark={isDark}
         />
-        <View style={styles.centerContainer}>
-          <Typography>Edit mode not implemented yet.</Typography>
-        </View>
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Controller
+            control={control}
+            name="name"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="Budget Name"
+                placeholder="e.g. January Budget 2025, Monthly Groceries"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={errors.name?.message}
+                isDark={isDark}
+              />
+            )}
+          />
+
+          <DateRangeSelector
+            startDate={watch("startDate") || ""}
+            endDate={watch("endDate") || ""}
+            onStartDateChange={(date) => setValue("startDate", date)}
+            onEndDateChange={(date) => setValue("endDate", date)}
+            startError={errors.startDate?.message}
+            endError={errors.endDate?.message}
+          />
+
+          <Controller
+            control={control}
+            name="recuringPeriodId"
+            render={({ field: { onChange, value } }) => (
+              <SearchableDropdown
+                label="Recurring Period"
+                options={periodOptions}
+                value={value || ""}
+                onSelect={(selectedValue) =>
+                  onChange(selectedValue === "" ? undefined : selectedValue)
+                }
+                placeholder="Select recurring period"
+              />
+            )}
+          />
+
+          {/* Budget Items */}
+          <View style={styles.section}>
+            <Typography
+              variant="h3"
+              weight="semibold"
+              style={[
+                styles.sectionTitle,
+                isDark ? styles.sectionTitleDark : {},
+              ]}
+            >
+              Budget Items
+            </Typography>
+
+            <Card
+              style={styles.itemsCard}
+              isDark={isDark}
+            >
+              {fields.length === 0 && (
+                <Typography
+                  variant="body2"
+                  style={[styles.hintText, isDark ? styles.hintTextDark : {}]}
+                >
+                  Add categories to allocate budget amounts
+                </Typography>
+              )}
+
+              {/* Selected Categories */}
+              {fields.map((item, index) => {
+                const category = categories.find(
+                  (cat) => cat.id === item.categoryId
+                );
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.itemContainer,
+                      isDark && styles.itemContainerDark,
+                    ]}
+                  >
+                    <View style={styles.itemHeader}>
+                      <Typography
+                        style={[
+                          styles.itemTitle,
+                          ...(isDark ? [styles.itemTitleDark] : []),
+                        ]}
+                      >
+                        Item {index + 1}
+                      </Typography>
+                      <TouchableOpacity
+                        onPress={() => remove(index)}
+                        style={styles.removeButton}
+                      >
+                        <Feather
+                          name="x"
+                          size={16}
+                          color="#EF4444"
+                        />
+                      </TouchableOpacity>
+                    </View>
+
+                    <SearchableDropdown
+                      options={[
+                        ...availableCategories.map((cat) => ({
+                          id: cat.id,
+                          label: cat.name,
+                          subtitle: cat.description,
+                          color: cat.color,
+                          icon: cat.icon,
+                        })),
+                        ...(category
+                          ? [
+                              {
+                                id: category.id,
+                                label: category.name,
+                                subtitle: category.description,
+                                color: category.color,
+                                icon: category.icon,
+                              },
+                            ]
+                          : []),
+                      ]}
+                      value={item.categoryId}
+                      onSelect={(newCategoryId) => {
+                        update(index, { ...item, categoryId: newCategoryId });
+                        clearErrors(`categories.${index}.categoryId`);
+                      }}
+                      placeholder="Select category"
+                      label="Category"
+                      error={errors.categories?.[index]?.categoryId?.message}
+                    />
+
+                    <View style={styles.amountInputs}>
+                      <Input
+                        label="Amount"
+                        value={item.allocatedAmount.toString()}
+                        onChangeText={(value) => {
+                          const amount = parseFloat(value) || 0;
+                          update(index, { ...item, allocatedAmount: amount });
+                          clearErrors(`categories.${index}.allocatedAmount`);
+                        }}
+                        placeholder="0.00"
+                        keyboardType="numeric"
+                        leftIcon="dollar"
+                        isDark={isDark}
+                        error={
+                          errors.categories?.[index]?.allocatedAmount?.message
+                        }
+                      />
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* Add Category Button */}
+              <TouchableOpacity
+                style={[styles.addButton, isDark && styles.addButtonDark]}
+                onPress={() => {
+                  if (
+                    fields.length > 0 &&
+                    (!fields[fields.length - 1].categoryId ||
+                      fields[fields.length - 1].allocatedAmount <= 0)
+                  ) {
+                    showError("Please fill the current category first");
+                    return;
+                  }
+                  append({ categoryId: "", allocatedAmount: 0 });
+                }}
+              >
+                <Feather
+                  name="plus"
+                  size={16}
+                  color={isDark ? "#D1D5DB" : "#374151"}
+                />
+                <Typography
+                  style={[
+                    styles.addButtonText,
+                    ...(isDark ? [styles.addButtonTextDark] : []),
+                  ]}
+                >
+                  Add Category
+                </Typography>
+              </TouchableOpacity>
+            </Card>
+
+            {errors.categories &&
+              typeof errors.categories === "object" &&
+              "message" in errors.categories && (
+                <Typography style={styles.errorText}>
+                  {errors.categories.message}
+                </Typography>
+              )}
+            {errors.categories &&
+              Array.isArray(errors.categories) &&
+              errors.categories.map(
+                (error, index) =>
+                  error && (
+                    <Typography
+                      key={index}
+                      style={styles.errorText}
+                    >
+                      Item {index + 1}:{" "}
+                      {error.categoryId?.message ||
+                        error.allocatedAmount?.message ||
+                        "Invalid category"}
+                    </Typography>
+                  )
+              )}
+          </View>
+
+          <Card isDark={isDark}>
+            <Controller
+              control={control}
+              name="carryOverEnabled"
+              render={({ field: { onChange, value } }) => (
+                <SettingRow
+                  label="Enable Carry Over"
+                  description="Automatically carry unused budget amounts to the next period"
+                  value={value ?? true}
+                  onValueChange={onChange}
+                />
+              )}
+            />
+          </Card>
+
+          <View style={styles.buttonContainer}>
+            <Button
+              onPress={handleSubmit(handleFormSubmit)}
+              disabled={isLoading}
+              style={styles.submitButton}
+            >
+              {isLoading ? (
+                <ActivityIndicator
+                  size="small"
+                  color={colors.background}
+                />
+              ) : mode === "create" ? (
+                "Create Budget"
+              ) : (
+                "Update Budget"
+              )}
+            </Button>
+          </View>
+        </ScrollView>
       </View>
     );
   }
@@ -576,7 +834,6 @@ const styles = StyleSheet.create({
   removeButton: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    backgroundColor: colors.error,
     borderRadius: 4,
   },
   removeText: {

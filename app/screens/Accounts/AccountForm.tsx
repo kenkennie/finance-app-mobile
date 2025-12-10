@@ -236,28 +236,6 @@ const AccountForm: React.FC<AccountFormProps> = ({
               />
             </Card>
           </View>
-
-          {/* Settings Section */}
-          <View style={styles.section}>
-            <Typography
-              style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
-            >
-              Settings
-            </Typography>
-            <Card isDark={isDark}>
-              <Controller
-                control={control}
-                name="isSystemAccount"
-                render={({ field: { onChange, value } }) => (
-                  <SettingRow
-                    label="Set as system account"
-                    value={value}
-                    onValueChange={onChange}
-                  />
-                )}
-              />
-            </Card>
-          </View>
         </ScrollView>
 
         <View style={[styles.footer, isDark && styles.footerDark]}>

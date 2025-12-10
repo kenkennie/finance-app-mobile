@@ -1,6 +1,6 @@
 import {
   Budget,
-  BudgetStats,
+  BudgetDetails,
   OverallBudgetStats,
   CreateBudgetData,
   UpdateBudgetData,
@@ -100,7 +100,7 @@ export const budgetService = {
     limit?: number;
     page?: number;
   }): Promise<{
-    data: (Budget & { stats: BudgetStats })[];
+    data: (Budget & { stats: BudgetDetatailStats })[];
     meta: {
       total: number;
       page: number;
@@ -148,10 +148,13 @@ export const budgetService = {
     return response.data.data;
   },
 
-  async getBudgetById(id: string): Promise<Budget & { stats: BudgetStats }> {
+  async getBudgetById(
+    id: string
+  ): Promise<Budget & { budgetDetails: BudgetDetails }> {
     const response = await apiClient.get<
-      ApiSuccessResponse<Budget & { stats: BudgetStats }>
+      ApiSuccessResponse<Budget & { budgetDetails: BudgetDetails }>
     >(`/budgets/${id}`);
+
     return extractResponseData(response);
   },
 
@@ -196,7 +199,7 @@ export const budgetService = {
     };
   },
 
-  async getBudgetStats(id: string): Promise<BudgetStats> {
+  async getBudgetStats(id: string): Promise<BudgetDetatailStats> {
     const response = await apiClient.get<ApiSuccessResponse<BudgetStats>>(
       `/budgets/${id}/stats`
     );
