@@ -26,7 +26,6 @@ import {
 } from "@/shared/components/ui";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useAccountStore } from "@/store/accountStore";
-import { useTransactionStatusStore } from "@/store/transactionStatusStore";
 import {
   CreateTransactionSchema,
   UpdateTransactionSchema,
@@ -35,26 +34,6 @@ import {
 } from "@/schemas/transaction.schema";
 import { Transaction } from "@/shared/types/filter.types";
 import { formatNumber } from "@/shared/utils/formatUtils";
-
-// Status selector component
-const StatusSelector: React.FC<{
-  value?: string;
-  onChange: (value: string) => void;
-  options: { id: string; label: string; icon: string; color: string }[];
-  error?: string;
-  isDark?: boolean;
-}> = ({ value, onChange, options, error, isDark = false }) => {
-  return (
-    <SearchableDropdown
-      options={options}
-      value={value}
-      onSelect={onChange}
-      placeholder="Select status"
-      label="Status"
-      error={error}
-    />
-  );
-};
 
 interface TransactionFormProps {
   mode: "create" | "edit";
@@ -77,8 +56,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const router = useRouter();
   const { categories, getCategories } = useCategoryStore();
   const { accounts, getAccounts } = useAccountStore();
-  const { statuses: transactionStatuses, getStatuses } =
-    useTransactionStatusStore();
 
   // State to store removed items when switching transaction types
   const [removedItems, setRemovedItems] = useState<any[]>([]);
@@ -104,10 +81,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   // Create mode form
   const createForm = useForm<CreateTransactionDto>({
     resolver: zodResolver(CreateTransactionSchema as any),
+    mode: "onBlur",
     defaultValues: {
       title: "",
       date: new Date(),
-      status: "Cleared" as string,
       notes: "",
       items: [
         {
@@ -123,13 +100,11 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   // Edit mode form
   const editForm = useForm<UpdateTransactionDto>({
     resolver: zodResolver(UpdateTransactionSchema as any),
+    mode: "onBlur",
     defaultValues: {
       title: initialData?.title || "",
       transactionType: initialData?.transactionType || "EXPENSE",
       date: initialData?.date ? new Date(initialData.date) : new Date(),
-      status: ((initialData?.status as any)?.name ||
-        (initialData?.status as string) ||
-        "Cleared") as "Pending" | "Cleared" | "Reconciled",
       notes: initialData?.notes || "",
       items:
         initialData?.TransactionItems?.map((item) => ({
@@ -140,11 +115,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         })) || [],
     },
   });
-
-  // Check if editing is allowed based on transaction status
-  const canEditTransaction =
-    (initialData?.status as any)?.name === "Pending" ||
-    (initialData?.status as string) === "Pending";
 
   // Field arrays for items
   const createItemsArray = useFieldArray({
@@ -190,11 +160,10 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   }, [selectedTransactionType, fields, remove, append, removedItems]);
 
-  // Load categories, accounts, and statuses on mount
+  // Load categories and accounts on mount
   useEffect(() => {
     getCategories();
     getAccounts();
-    getStatuses();
   }, []);
 
   // Fetch account balances for existing transaction items when editing
@@ -207,14 +176,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       });
     }
   }, [mode, initialData]);
-
-  // Prepare status options
-  const statusOptions = (transactionStatuses || []).map((status) => ({
-    id: status.name,
-    label: status.name,
-    icon: status.icon,
-    color: status.color,
-  }));
 
   // Function to fetch account balance
   const fetchAccountBalance = async (accountId: string) => {
@@ -331,15 +292,12 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
         title: initialData.title || "",
         transactionType: initialData.transactionType || "EXPENSE",
         date: initialData.date ? new Date(initialData.date) : new Date(),
-        status: ((initialData?.status as any)?.name ||
-          (initialData?.status as string) ||
-          "Cleared") as "Pending" | "Cleared" | "Reconciled",
         notes: initialData.notes || "",
         items:
           initialData.TransactionItems?.map((item) => ({
             categoryId: item.categoryId,
             accountId: item.accountId,
-            amount: item.amount,
+            amount: Number(item.amount) || 0,
             description: item.description,
           })) || [],
       });
@@ -452,23 +410,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                   value={value}
                   onChange={onChange}
                   error={errors.transactionType?.message}
-                />
-              )}
-            />
-          </View>
-
-          {/* Status Selector */}
-          <View style={styles.section}>
-            <Controller
-              control={control}
-              name="status"
-              render={({ field: { onChange, value } }) => (
-                <StatusSelector
-                  value={value}
-                  onChange={onChange}
-                  options={statusOptions}
-                  error={errors.status?.message}
-                  isDark={isDark}
                 />
               )}
             />
@@ -828,96 +769,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       </TouchableOpacity>
     ) : null;
 
-  // If transaction is Reconciled, show read-only view
-  if (
-    (initialData?.status as any)?.name === "Reconciled" ||
-    (initialData?.status as string) === "Reconciled"
-  ) {
-    return (
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={[styles.keyboardAvoid, isDark && styles.keyboardAvoidDark]}
-      >
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-        <ScrollView
-          style={[styles.content, isDark && styles.contentDark]}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.section}>
-            <Card
-              style={styles.readOnlyCard}
-              isDark={isDark}
-            >
-              <Typography
-                style={[
-                  styles.readOnlyTitle,
-                  isDark && styles.readOnlyTitleDark,
-                ]}
-              >
-                Transaction Locked
-              </Typography>
-              <Typography
-                style={[
-                  styles.readOnlyMessage,
-                  isDark && styles.readOnlyMessageDark,
-                ]}
-              >
-                This transaction has been reconciled and cannot be modified.
-              </Typography>
-            </Card>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
-
-  // If transaction is Cleared, show read-only view
-  if (
-    (initialData?.status as any)?.name === "Cleared" ||
-    (initialData?.status as string) === "Cleared"
-  ) {
-    return (
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={[styles.keyboardAvoid, isDark && styles.keyboardAvoidDark]}
-      >
-        <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
-        <ScrollView
-          style={[styles.content, isDark && styles.contentDark]}
-          contentContainerStyle={styles.contentContainer}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.section}>
-            <Card
-              style={styles.readOnlyCard}
-              isDark={isDark}
-            >
-              <Typography
-                style={[
-                  styles.readOnlyTitle,
-                  isDark && styles.readOnlyTitleDark,
-                ]}
-              >
-                Transaction Cleared
-              </Typography>
-              <Typography
-                style={[
-                  styles.readOnlyMessage,
-                  isDark && styles.readOnlyMessageDark,
-                ]}
-              >
-                This transaction has been cleared and cannot be modified.
-              </Typography>
-            </Card>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    );
-  }
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -959,23 +810,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
                 value={value}
                 onChange={onChange}
                 error={errors.transactionType?.message}
-              />
-            )}
-          />
-        </View>
-
-        {/* Status Selector */}
-        <View style={styles.section}>
-          <Controller
-            control={control}
-            name="status"
-            render={({ field: { onChange, value } }) => (
-              <StatusSelector
-                value={value}
-                onChange={onChange}
-                options={statusOptions}
-                error={errors.status?.message}
-                isDark={isDark}
               />
             )}
           />

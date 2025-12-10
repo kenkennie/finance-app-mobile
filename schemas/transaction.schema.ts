@@ -13,7 +13,6 @@ export const CreateTransactionSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title too long"),
   transactionType: transactionTypeEnum,
   date: z.coerce.date(),
-  status: z.string().default("Cleared"),
   notes: z.string().max(1000, "Notes too long").optional(),
   items: z.array(TransactionItemSchema).min(1, "At least one item is required"),
 });
@@ -26,7 +25,6 @@ export const UpdateTransactionSchema = z.object({
     .optional(),
   transactionType: transactionTypeEnum.optional(),
   date: z.coerce.date().optional(),
-  status: z.string().optional(),
   notes: z.string().max(1000, "Notes too long").optional(),
   items: z
     .array(TransactionItemSchema)
