@@ -467,7 +467,7 @@ const AllTransactions = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
           isDark={isDark}
-          showFilterButton
+          // showFilterButton
           onFilterPress={() => setIsFilterVisible(true)}
         />
       </View>

@@ -1,5 +1,5 @@
 import { Header } from "@/shared/components/ui/Header";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { View, StyleSheet, useColorScheme } from "react-native";
 import { useToastStore } from "@/store/toastStore";

@@ -73,15 +73,26 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
       set({ isLoading: true, error: null });
 
       // Call the API to update transaction
-      await transactionsService.updateTransaction(id, data);
+      const updatedTransaction = await transactionsService.updateTransaction(
+        id,
+        data
+      );
 
       // Refresh accounts to update balances
       await useAccountStore.getState().getAccounts();
 
-      set({
+      // Update the transaction in the local state
+      set((state) => ({
+        transactions: state.transactions.map((transaction) =>
+          transaction.id === id ? updatedTransaction : transaction
+        ),
+        currentTransaction:
+          state.currentTransaction?.id === id
+            ? updatedTransaction
+            : state.currentTransaction,
         isLoading: false,
         successMessage: "Transaction updated successfully",
-      });
+      }));
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
       set({

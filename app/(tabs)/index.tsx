@@ -130,7 +130,7 @@ export default function Dashboard() {
         (t: any) => t.date.startsWith(date) && t.transactionType === "EXPENSE"
       );
       return dayTransactions.reduce(
-        (sum: number, t: any) => sum + (t.totalAmount || 0),
+        (sum: number, t: any) => sum + (parseFloat(t.totalAmount) || 0),
         0
       );
     });
@@ -259,11 +259,17 @@ export default function Dashboard() {
 
       const income = monthTransactions
         .filter((t: any) => t.transactionType === "INCOME")
-        .reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
+        .reduce(
+          (sum: number, t: any) => sum + (parseFloat(t.totalAmount) || 0),
+          0
+        );
 
       const expenses = monthTransactions
         .filter((t: any) => t.transactionType === "EXPENSE")
-        .reduce((sum: number, t: any) => sum + (t.totalAmount || 0), 0);
+        .reduce(
+          (sum: number, t: any) => sum + (parseFloat(t.totalAmount) || 0),
+          0
+        );
 
       return {
         month,
@@ -1044,7 +1050,7 @@ export default function Dashboard() {
               >
                 {transaction.transactionType === "INCOME" ? "+" : "-"}
                 {currencySymbol}
-                {Math.abs(transaction.totalAmount || 0).toFixed(2)}
+                {Math.abs(parseFloat(transaction.totalAmount) || 0).toFixed(2)}
               </Typography>
             </View>
           ))}
