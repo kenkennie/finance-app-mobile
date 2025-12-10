@@ -16,8 +16,6 @@ import { Button } from "@/shared/components/ui/Button";
 import { Card } from "@/shared/components/ui/Card";
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useTransactionStore } from "@/store/transactionStore";
-import { useCategoryStore } from "@/store/categoryStore";
-import { useAccountStore } from "@/store/accountStore";
 import { useTransactionItemsStore } from "@/store/transactionItemsStore";
 import { Transaction } from "@/shared/types/filter.types";
 

@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   label: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: "500",
     color: "#6B7280",
   },

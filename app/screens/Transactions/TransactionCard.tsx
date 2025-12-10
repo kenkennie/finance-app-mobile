@@ -2,7 +2,6 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Card } from "@/shared/components/ui/Card";
-import { Badge } from "@/shared/components/ui/Badge";
 import { Transaction } from "@/shared/types/filter.types";
 
 interface TransactionCardProps {
@@ -83,19 +82,6 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
             <Text style={[styles.date, isDark && styles.dateDark]}>
               {formatDate(transaction.date)}
             </Text>
-            <Badge
-              variant="custom"
-              customColor={
-                typeof transaction.status === "object"
-                  ? transaction.status.color
-                  : "#6B7280"
-              }
-              size="small"
-            >
-              {typeof transaction.status === "object"
-                ? transaction.status.name
-                : transaction.status}
-            </Badge>
           </View>
         </View>
       </View>
