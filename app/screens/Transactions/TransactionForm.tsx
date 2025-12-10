@@ -16,7 +16,6 @@ import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
 import { Typography } from "@/shared/components/ui/Typography";
 import { useTheme } from "@/theme/context/ThemeContext";
-import { useRouter } from "expo-router";
 import TransactionTypeSelector from "@/shared/components/ui/TransactionTypeSelector";
 import DatePicker from "@/shared/components/ui/pickers/DatePicker";
 import {
@@ -53,7 +52,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   submitButtonText,
 }) => {
   const { isDark } = useTheme();
-  const router = useRouter();
   const { categories, getCategories } = useCategoryStore();
   const { accounts, getAccounts } = useAccountStore();
 
@@ -732,11 +730,6 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   }));
   const ids = categoryOptions.map((opt) => opt.id);
   const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
-  if (duplicates.length > 0) {
-    console.log("Duplicate category IDs found:", duplicates);
-    console.log("Category options:", categoryOptions);
-    console.log("Filtered categories:", filteredCategories);
-  }
 
   // Filter categories based on transaction type (for edit mode)
   const editFilteredCategories = categories.filter(
