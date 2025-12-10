@@ -50,7 +50,7 @@ const EditTransactionScreen = ({}) => {
     try {
       await updateTransaction(transactionId, data);
       // showSuccess("Transaction updated successfully!");
-      router.push(
+      router.replace(
         `/screens/Transactions/TransactionDetails?transactionId=${transactionId}` as any
       );
     } catch (error: any) {

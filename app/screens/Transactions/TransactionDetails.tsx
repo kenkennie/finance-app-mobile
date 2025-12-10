@@ -14,13 +14,12 @@ import { Header } from "@/shared/components/ui/Header";
 import { Typography } from "@/shared/components/ui/Typography";
 import { Button } from "@/shared/components/ui/Button";
 import { Card } from "@/shared/components/ui/Card";
-import { Badge } from "@/shared/components/ui/Badge";
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useCategoryStore } from "@/store/categoryStore";
 import { useAccountStore } from "@/store/accountStore";
 import { useTransactionItemsStore } from "@/store/transactionItemsStore";
-import { Transaction, TransactionStatus } from "@/shared/types/filter.types";
+import { Transaction } from "@/shared/types/filter.types";
 
 const TransactionDetailsScreen = () => {
   const router = useRouter();
@@ -102,20 +101,6 @@ const TransactionDetailsScreen = () => {
       month: "long",
       day: "numeric",
     });
-  };
-
-  const getStatusColor = (status: string | TransactionStatus) => {
-    const statusName = typeof status === "object" ? status.name : status;
-    switch (statusName.toLowerCase()) {
-      case "cleared":
-        return "success";
-      case "pending":
-        return "warning";
-      case "reconciled":
-        return "info";
-      default:
-        return "neutral";
-    }
   };
 
   if (isLoading) {
@@ -229,11 +214,6 @@ const TransactionDetailsScreen = () => {
 
           <View style={styles.amountSection}>
             <Typography
-              style={[styles.amountLabel, isDark ? styles.amountLabelDark : {}]}
-            >
-              Amount
-            </Typography>
-            <Typography
               variant="h1"
               style={[
                 styles.amount,
@@ -247,19 +227,6 @@ const TransactionDetailsScreen = () => {
               {currency}
               {transaction.totalAmount}
             </Typography>
-            <Badge
-              variant="custom"
-              customColor={
-                typeof transaction.status === "object"
-                  ? transaction.status.color
-                  : "#6B7280"
-              }
-              size="medium"
-            >
-              {typeof transaction.status === "object"
-                ? transaction.status.name
-                : transaction.status}
-            </Badge>
           </View>
         </Card>
 

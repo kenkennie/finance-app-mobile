@@ -404,10 +404,6 @@ const AllTransactions = () => {
       }
     }
 
-    if (appliedFilters.statuses && appliedFilters.statuses.length > 0) {
-      params.statuses = appliedFilters.statuses;
-    }
-
     if (appliedFilters.categories && appliedFilters.categories.length > 0) {
       params.categories = appliedFilters.categories.join(",");
     }
