@@ -92,7 +92,6 @@ export const transactionsService = {
         return {
           ...transaction,
           type: transaction.transactionType?.toLowerCase() || transaction.type,
-          status: transaction.status || transaction.status,
           amount: firstItem?.amount || 0,
           title: transaction.title,
           category: firstItem?.Category
@@ -127,7 +126,6 @@ export const transactionsService = {
     return {
       ...transaction,
       type: transaction.transactionType?.toLowerCase() || transaction.type,
-      status: transaction.status || transaction.status,
       amount: firstItem?.amount || 0,
       title: transaction.title,
       category: firstItem?.Category
@@ -159,7 +157,6 @@ export const transactionsService = {
       return {
         ...transaction,
         type: transaction.transactionType?.toLowerCase() || transaction.type,
-        status: transaction.status || transaction.status,
         amount: firstItem?.amount || 0,
         title: transaction.title,
         category: firstItem?.Category
@@ -201,7 +198,6 @@ export const transactionsService = {
       return {
         ...transaction,
         type: transaction.transactionType?.toLowerCase() || transaction.type,
-        status: transaction.status || transaction.status,
         amount: firstItem?.amount || 0,
         title: transaction.title,
         category: firstItem?.Category

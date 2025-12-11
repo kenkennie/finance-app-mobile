@@ -132,6 +132,21 @@ export interface BudgetState {
   successMessage: string | null;
 }
 
+// Comprehensive store state interface that includes pagination and statistics
+export interface BudgetStoreState extends BudgetState {
+  // Budget statistics mapped by budget ID
+  budgetDetails: { [budgetId: string]: BudgetDetails };
+  // Overall statistics across all budgets
+  overallStats: OverallBudgetStats | null;
+  // Pagination information
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export interface CreateBudgetData {
   name: string;
   startDate: string;

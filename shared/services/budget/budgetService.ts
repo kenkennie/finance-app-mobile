@@ -100,7 +100,7 @@ export const budgetService = {
     limit?: number;
     page?: number;
   }): Promise<{
-    data: (Budget & { stats: BudgetDetatailStats })[];
+    data: (Budget & { stats: BudgetDetails })[];
     meta: {
       total: number;
       page: number;
@@ -136,7 +136,7 @@ export const budgetService = {
       success: boolean;
       message: string;
       data: {
-        data: (Budget & { stats: BudgetStats })[];
+        data: (Budget & { stats: BudgetDetails })[];
         meta: {
           total: number;
           page: number;
@@ -199,8 +199,8 @@ export const budgetService = {
     };
   },
 
-  async getBudgetStats(id: string): Promise<BudgetDetatailStats> {
-    const response = await apiClient.get<ApiSuccessResponse<BudgetStats>>(
+  async getBudgetStats(id: string): Promise<BudgetDetails> {
+    const response = await apiClient.get<ApiSuccessResponse<BudgetDetails>>(
       `/budgets/${id}/stats`
     );
     return extractResponseData(response);
@@ -447,7 +447,7 @@ export const budgetService = {
     limit?: number;
     page?: number;
   }): Promise<{
-    data: (Budget & { stats?: BudgetStats })[];
+    data: (Budget & { stats?: BudgetDetails })[];
     meta: {
       total: number;
       page: number;
@@ -477,7 +477,7 @@ export const budgetService = {
       success: boolean;
       message: string;
       data: {
-        data: (Budget & { stats?: BudgetStats })[];
+        data: (Budget & { stats?: BudgetDetails })[];
         meta: {
           total: number;
           page: number;

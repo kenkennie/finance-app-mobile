@@ -1,43 +1,15 @@
 import { create } from "zustand";
 import {
   Budget,
-  BudgetState,
-  BudgetStats,
+  BudgetStoreState,
+  BudgetDetails,
   CreateBudgetData,
   UpdateBudgetData,
-  OverallBudgetStats,
 } from "@/shared/types/budget.types";
 import { extractErrorMessage } from "@/shared/utils/api/responseHandler";
 import { budgetService } from "@/shared/services/budget/budgetService";
 
-interface BudgetStore extends BudgetState {
-  // List state
-  budgetStats: {
-    [budgetId: string]: {
-      totalAllocated: number;
-      totalSpent: number;
-      totalRemaining: number;
-      overallPercentageUsed: number;
-      categoryStats: {
-        categoryId: string;
-        categoryName: string;
-        allocatedAmount: number;
-        spentAmount: number;
-        percentageUsed: number;
-        isOverBudget: boolean;
-      }[];
-    };
-  };
-  overallStats: OverallBudgetStats | null;
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  isLoadingMore: boolean;
-  hasMore: boolean;
-
+interface BudgetStore extends BudgetStoreState {
   // Actions
   createBudget: (data: CreateBudgetData) => Promise<Budget>;
   getBudgets: (filters?: {
@@ -53,10 +25,10 @@ interface BudgetStore extends BudgetState {
   getBudgetById: (id: string) => Promise<Budget | null>;
   getBudgetWithStats: (
     id: string
-  ) => Promise<(Budget & { stats: BudgetStats }) | null>;
+  ) => Promise<(Budget & { budgetDetails: BudgetDetails }) | null>;
   updateBudget: (id: string, data: UpdateBudgetData) => Promise<Budget>;
   deleteBudget: (id: string) => Promise<void>;
-  getBudgetStats: (id: string) => Promise<BudgetStats | null>;
+  getBudgetStats: (id: string) => Promise<BudgetDetails | null>;
   getBudgetTransactions: (
     id: string,
     filters?: {
@@ -83,7 +55,7 @@ interface BudgetStore extends BudgetState {
 }
 
 export const useBudgetStore = create<BudgetStore>((set, get) => ({
-  // Initial state
+  // Initial state - now using BudgetStoreState interface
   budgets: [],
   currentBudget: null,
   isLoading: false,
@@ -91,7 +63,7 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
   hasMore: true,
   error: null,
   successMessage: null,
-  budgetStats: {},
+  budgetDetails: {},
   overallStats: null,
   pagination: {
     page: 1,
@@ -132,58 +104,61 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
         budgetService.getOverallBudgetStats(),
       ]);
 
-      // Extract budgets and stats (filter out budgets without stats)
-      const budgetsWithStats = budgetsResponse.data.filter(
-        (item) => item.stats
+      // Add safety checks for undefined/null response data
+      if (!budgetsResponse?.data || !Array.isArray(budgetsResponse.data)) {
+        console.warn("Budgets response data is invalid:", budgetsResponse);
+        set({
+          budgets: [],
+          budgetDetails: {},
+          overallStats: statsResponse || null,
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 0,
+            totalPages: 0,
+          },
+          hasMore: false,
+          isLoading: false,
+        });
+        return;
+      }
+
+      // Extract budgets and their associated details (BudgetDetails)
+      const budgetsWithDetails = budgetsResponse.data.filter(
+        (item) => item && item.stats
       );
-      const budgets = budgetsWithStats.map((item) => ({
+      const budgets = budgetsWithDetails.map((item) => ({
         ...item,
-        stats: undefined, // Remove stats from budget object
+        stats: undefined, // Remove stats from budget object to keep clean
       }));
 
-      const budgetStats: {
-        [budgetId: string]: {
-          totalAllocated: number;
-          totalSpent: number;
-          totalRemaining: number;
-          overallPercentageUsed: number;
-          categoryStats: {
-            categoryId: string;
-            categoryName: string;
-            allocatedAmount: number;
-            spentAmount: number;
-            percentageUsed: number;
-            isOverBudget: boolean;
-          }[];
-        };
-      } = {};
-      budgetsWithStats.forEach((budgetWithStats) => {
-        if (budgetWithStats.stats) {
-          budgetStats[budgetWithStats.id] = {
-            totalAllocated: budgetWithStats.stats.totalAllocated,
-            totalSpent: budgetWithStats.stats.totalSpent,
-            totalRemaining: budgetWithStats.stats.totalRemaining,
-            overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
-            categoryStats: budgetWithStats.stats.categoryStats,
-          };
+      // Create budgetDetails map using proper BudgetDetails type
+      const budgetDetails: { [budgetId: string]: BudgetDetails } = {};
+      budgetsWithDetails.forEach((budgetWithDetails) => {
+        if (budgetWithDetails?.stats) {
+          // The stats from API already match BudgetDetails structure
+          budgetDetails[budgetWithDetails.id] = budgetWithDetails.stats;
         }
       });
 
       set({
         budgets,
-        budgetStats,
+        budgetDetails,
         overallStats: statsResponse,
         pagination: {
-          page: budgetsResponse.meta.page,
-          limit: budgetsResponse.meta.limit,
-          total: budgetsResponse.meta.total,
-          totalPages: budgetsResponse.meta.totalPages,
+          page: budgetsResponse.meta?.page || 1,
+          limit: budgetsResponse.meta?.limit || 20,
+          total: budgetsResponse.meta?.total || 0,
+          totalPages: budgetsResponse.meta?.totalPages || 0,
         },
-        hasMore: budgetsResponse.meta.page < budgetsResponse.meta.totalPages,
+        hasMore:
+          (budgetsResponse.meta?.page || 1) <
+          (budgetsResponse.meta?.totalPages || 0),
         isLoading: false,
       });
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.error("Error loading budgets:", errorMessage);
       set({
         error: errorMessage,
         isLoading: false,
@@ -208,57 +183,53 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
         limit: currentPagination.limit,
       });
 
-      // Extract budgets and stats (filter out budgets without stats)
-      const newBudgetsWithStats = budgetsResponse.data.filter(
-        (item) => item.stats
+      // Add safety checks for undefined/null response data
+      if (!budgetsResponse?.data || !Array.isArray(budgetsResponse.data)) {
+        console.warn(
+          "Load more budgets response data is invalid:",
+          budgetsResponse
+        );
+        set({
+          isLoadingMore: false,
+        });
+        return;
+      }
+
+      // Extract budgets and their details
+      const newBudgetsWithDetails = budgetsResponse.data.filter(
+        (item) => item && item.stats
       );
-      const newBudgets = newBudgetsWithStats.map((item) => ({
+      const newBudgets = newBudgetsWithDetails.map((item) => ({
         ...item,
         stats: undefined, // Remove stats from budget object
       }));
 
-      const newBudgetStats: {
-        [budgetId: string]: {
-          totalAllocated: number;
-          totalSpent: number;
-          totalRemaining: number;
-          overallPercentageUsed: number;
-          categoryStats: {
-            categoryId: string;
-            categoryName: string;
-            allocatedAmount: number;
-            spentAmount: number;
-            percentageUsed: number;
-            isOverBudget: boolean;
-          }[];
-        };
-      } = {};
-      newBudgetsWithStats.forEach((budgetWithStats) => {
-        if (budgetWithStats.stats) {
-          newBudgetStats[budgetWithStats.id] = {
-            totalAllocated: budgetWithStats.stats.totalAllocated,
-            totalSpent: budgetWithStats.stats.totalSpent,
-            totalRemaining: budgetWithStats.stats.totalRemaining,
-            overallPercentageUsed: budgetWithStats.stats.overallPercentageUsed,
-            categoryStats: budgetWithStats.stats.categoryStats,
-          };
+      // Create new budgetDetails map
+      const newBudgetDetails: { [budgetId: string]: BudgetDetails } = {};
+      newBudgetsWithDetails.forEach((budgetWithDetails) => {
+        if (budgetWithDetails?.stats) {
+          newBudgetDetails[budgetWithDetails.id] = budgetWithDetails.stats;
         }
       });
 
       set((state) => ({
         budgets: [...state.budgets, ...newBudgets],
-        budgetStats: { ...state.budgetStats, ...newBudgetStats },
+        budgetDetails: { ...state.budgetDetails, ...newBudgetDetails },
         pagination: {
-          page: budgetsResponse.meta.page,
-          limit: budgetsResponse.meta.limit,
-          total: budgetsResponse.meta.total,
-          totalPages: budgetsResponse.meta.totalPages,
+          page: budgetsResponse.meta?.page || currentPagination.page,
+          limit: budgetsResponse.meta?.limit || currentPagination.limit,
+          total: budgetsResponse.meta?.total || currentPagination.total,
+          totalPages:
+            budgetsResponse.meta?.totalPages || currentPagination.totalPages,
         },
-        hasMore: budgetsResponse.meta.page < budgetsResponse.meta.totalPages,
+        hasMore:
+          (budgetsResponse.meta?.page || currentPagination.page) <
+          (budgetsResponse.meta?.totalPages || currentPagination.totalPages),
         isLoadingMore: false,
       }));
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.error("Error loading more budgets:", errorMessage);
       set({
         error: errorMessage,
         isLoadingMore: false,
@@ -273,10 +244,17 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
 
       const budget = await budgetService.getBudgetById(id);
 
+      // Add safety check for budget
+      if (!budget) {
+        set({ isLoading: false });
+        return null;
+      }
+
       set({ isLoading: false });
       return budget;
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.error("Error getting budget by ID:", errorMessage);
       set({
         error: errorMessage,
         isLoading: false,
@@ -287,16 +265,23 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
 
   getBudgetWithStats: async (
     id: string
-  ): Promise<(Budget & { stats: BudgetStats }) | null> => {
+  ): Promise<(Budget & { budgetDetails: BudgetDetails }) | null> => {
     try {
       set({ isLoading: true, error: null });
 
-      const budgetWithStats = await budgetService.getBudgetById(id);
+      const budgetWithDetails = await budgetService.getBudgetById(id);
+
+      // Add safety check for budgetWithDetails
+      if (!budgetWithDetails) {
+        set({ isLoading: false });
+        return null;
+      }
 
       set({ isLoading: false });
-      return budgetWithStats;
+      return budgetWithDetails;
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.error("Error getting budget with stats:", errorMessage);
       set({
         error: errorMessage,
         isLoading: false,
@@ -365,16 +350,23 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
     }
   },
 
-  getBudgetStats: async (id: string): Promise<BudgetStats | null> => {
+  getBudgetStats: async (id: string): Promise<BudgetDetails | null> => {
     try {
       set({ isLoading: true, error: null });
 
       const stats = await budgetService.getBudgetStats(id);
 
+      // Add safety check for stats
+      if (!stats) {
+        set({ isLoading: false });
+        return null;
+      }
+
       set({ isLoading: false });
       return stats;
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.error("Error getting budget stats:", errorMessage);
       set({
         error: errorMessage,
         isLoading: false,
@@ -408,10 +400,17 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
         filters
       );
 
+      // Add safety check for transactions response
+      if (!transactions) {
+        set({ isLoading: false });
+        return null;
+      }
+
       set({ isLoading: false });
       return transactions;
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      console.error("Error getting budget transactions:", errorMessage);
       set({
         error: errorMessage,
         isLoading: false,

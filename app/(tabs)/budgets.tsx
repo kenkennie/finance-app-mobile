@@ -46,7 +46,7 @@ const Budgets = () => {
 
   const {
     budgets,
-    budgetStats,
+    budgetDetails,
     overallStats,
     isLoading,
     isLoadingMore,
@@ -156,7 +156,7 @@ const Budgets = () => {
   };
 
   const renderBudgetCard = ({ item: budget }: { item: Budget }) => {
-    const stats = budgetStats[budget.id];
+    const stats = budgetDetails[budget.id];
     const spentAmount = stats?.totalSpent || 0;
     const totalAllocated = stats?.totalAllocated || 0;
     const totalRemaining = stats?.totalRemaining || 0;

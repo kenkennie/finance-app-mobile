@@ -307,9 +307,6 @@ export default function BudgetDetailsScreen() {
   }
 
   const budget = budgetWithStats;
-  console.log("====================================");
-  console.log(budget);
-  console.log("====================================");
 
   const stats = budgetWithStats.stats;
 
