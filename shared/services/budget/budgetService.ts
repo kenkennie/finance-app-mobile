@@ -199,7 +199,7 @@ export const budgetService = {
     };
   },
 
-  async getBudgetStats(id: string): Promise<BudgetDetails> {
+  async getBudgetStatistics(id: string): Promise<BudgetDetails> {
     const response = await apiClient.get<ApiSuccessResponse<BudgetDetails>>(
       `/budgets/${id}/stats`
     );

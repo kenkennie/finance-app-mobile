@@ -23,12 +23,12 @@ interface BudgetStore extends BudgetStoreState {
     search?: string;
   }) => Promise<void>;
   getBudgetById: (id: string) => Promise<Budget | null>;
-  getBudgetWithStats: (
+  getBudgetIncludingStatistics: (
     id: string
   ) => Promise<(Budget & { budgetDetails: BudgetDetails }) | null>;
   updateBudget: (id: string, data: UpdateBudgetData) => Promise<Budget>;
   deleteBudget: (id: string) => Promise<void>;
-  getBudgetStats: (id: string) => Promise<BudgetDetails | null>;
+  getBudgetStatistics: (id: string) => Promise<BudgetDetails | null>;
   getBudgetTransactions: (
     id: string,
     filters?: {
@@ -263,7 +263,7 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
     }
   },
 
-  getBudgetWithStats: async (
+  getBudgetIncludingStatistics: async (
     id: string
   ): Promise<(Budget & { budgetDetails: BudgetDetails }) | null> => {
     try {
@@ -350,11 +350,11 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
     }
   },
 
-  getBudgetStats: async (id: string): Promise<BudgetDetails | null> => {
+  getBudgetStatistics: async (id: string): Promise<BudgetDetails | null> => {
     try {
       set({ isLoading: true, error: null });
 
-      const stats = await budgetService.getBudgetStats(id);
+      const stats = await budgetService.getBudgetStatistics(id);
 
       // Add safety check for stats
       if (!stats) {

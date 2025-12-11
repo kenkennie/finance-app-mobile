@@ -31,7 +31,7 @@ export default function BudgetDetailsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
 
-  const { getBudgetWithStats, deleteBudget, isLoading, error } =
+  const { getBudgetIncludingStatistics, deleteBudget, isLoading, error } =
     useBudgetStore();
   const { showSuccess, showError } = useToastStore();
 
@@ -69,7 +69,7 @@ export default function BudgetDetailsScreen() {
   const loadBudget = async () => {
     if (!budgetId) return;
 
-    const budgetData = await getBudgetWithStats(budgetId);
+    const budgetData = await getBudgetIncludingStatistics(budgetId);
     if (budgetData) {
       setBudgetWithStats(budgetData);
       // Load transactions for this budget
