@@ -45,7 +45,7 @@ export default function Dashboard() {
   } = useTransactionStore();
   const {
     budgets = [],
-    budgetStats = {},
+    budgetDetails = {},
     getBudgets,
     isLoading: budgetsLoading,
   } = useBudgetStore();
@@ -698,11 +698,14 @@ export default function Dashboard() {
             >
               Current Budgets
             </Typography>
-            {safeBudgets.slice(0, 3).map((budget: any) => {
-              const budgetStat = budgetStats[budget.id];
-              const spent = Number(budgetStat?.totalSpent || 0);
-              const allocated = Number(budgetStat?.totalAllocated || 0);
-              const percentage = budgetStat?.overallPercentageUsed || 0;
+
+            {safeBudgets.slice(0, 4).map((budget: any) => {
+              const budgetStat = budgetDetails[budget.id];
+              const spent = budgetStat?.totalSpent;
+              const allocated = budgetStat?.totalAllocated;
+              const remaining = budgetStat?.totalRemaining;
+              const percentage = budgetStat?.overallPercentageUsed;
+              const budgetCurrency = budgetStat?.currency;
               const isOverBudget = spent > allocated;
 
               return (
@@ -731,8 +734,8 @@ export default function Dashboard() {
                         },
                       ]}
                     >
-                      {currencySymbol}
-                      {spent} / {currencySymbol}
+                      {budgetCurrency}
+                      {spent} / {budgetCurrency}
                       {allocated}
                     </Typography>
                   </View>
@@ -749,6 +752,8 @@ export default function Dashboard() {
                           width: `${Math.min(percentage, 100)}%`,
                           backgroundColor: isOverBudget
                             ? colors.expense
+                            : percentage >= 80
+                            ? colors.warning
                             : colors.success,
                         },
                       ]}
@@ -758,10 +763,12 @@ export default function Dashboard() {
                     variant="caption"
                     style={[
                       styles.budgetPercentage,
-                      { color: themeColors.text.tertiary },
+                      { color: colors.text.tertiary },
                     ]}
                   >
-                    {percentage.toFixed(1)}% used
+                    {percentage}% used •{" "}
+                    {remaining >= 0 ? "Over " : " Remaining "}
+                    {remaining}
                   </Typography>
                 </View>
               );
@@ -1376,5 +1383,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     lineHeight: 16,
+  },
+  budgetOverviewContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.sm,
+  },
+  budgetOverviewItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  budgetOverviewLabel: {
+    fontSize: 11,
+    marginBottom: spacing.xs / 2,
+    textAlign: "center",
+  },
+  budgetOverviewValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
