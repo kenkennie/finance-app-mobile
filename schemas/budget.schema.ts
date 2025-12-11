@@ -40,8 +40,8 @@ export const CreateBudgetSchema = z
 export const UpdateBudgetSchema = z
   .object({
     name: z.string().min(1).max(100).optional(),
-    startDate: z.string().optional(),
-    endDate: z.string().optional(),
+    startDate: z.coerce.date().optional(),
+    endDate: z.coerce.date().optional(),
     recuringPeriodId: z.string().optional(),
     carryOverEnabled: z.boolean().optional(),
     isActive: z.boolean().optional(),

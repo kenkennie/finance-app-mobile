@@ -6,9 +6,13 @@ import {
   Dimensions,
   TouchableOpacity,
   RefreshControl,
+  Platform,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { LineChart, BarChart, PieChart } from "react-native-chart-kit";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { LineChart, PieChart } from "react-native-chart-kit";
 import { useRouter } from "expo-router";
 import { Plus, CreditCard, PiggyBank, BarChart3 } from "lucide-react-native";
 import { useAccountStore } from "@/store/accountStore";
@@ -25,6 +29,7 @@ const { width } = Dimensions.get("window");
 export default function Dashboard() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuthStore();
   const {
@@ -40,6 +45,7 @@ export default function Dashboard() {
   } = useTransactionStore();
   const {
     budgets = [],
+    budgetStats = {},
     getBudgets,
     isLoading: budgetsLoading,
   } = useBudgetStore();
@@ -49,18 +55,44 @@ export default function Dashboard() {
   const safeAccounts = accounts || [];
   const safeBudgets = budgets || [];
 
+  // Calculate tab bar height to ensure content isn't hidden
+  const tabBarHeight = (Platform.OS === "ios" ? 120 : 100) + insets.bottom;
+  const contentPaddingBottom = tabBarHeight + 30; // Extra 30px for better spacing
+
   useEffect(() => {
-    getAccounts();
-    getRecentTransactions(10);
-    getBudgets();
-  }, [getAccounts, getRecentTransactions, getBudgets]);
+    const loadDashboardData = async () => {
+      try {
+        await getAccounts();
+        await getRecentTransactions(5);
+        await getBudgets();
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
+  // Separate effect to reload transactions when component mounts/focuses
+  useEffect(() => {
+    if (!transactions || transactions.length === 0) {
+      getRecentTransactions(5).catch((error) => {});
+    }
+  }, [transactions?.length, transactionsLoading]);
+
+  // Debug effect to track component lifecycle
+  useEffect(() => {
+    return () => {
+      console.log("Dashboard component unmounting");
+    };
+  });
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await Promise.all([
         getAccounts(),
-        getRecentTransactions(10),
+        getRecentTransactions(5),
         getBudgets(),
       ]);
     } catch (error) {
@@ -233,69 +265,6 @@ export default function Dashboard() {
     }));
   }, [safeTransactions, selectedTimePeriod, themeColors.text.primary]);
 
-  // Monthly comparison data
-  const monthlyData = useMemo(() => {
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const date = new Date(currentYear, currentMonth - (5 - i), 1);
-      return {
-        month: date.toLocaleDateString("en-US", { month: "short" }),
-        year: date.getFullYear(),
-        monthIndex: date.getMonth(),
-        yearValue: date.getFullYear(),
-      };
-    });
-
-    const monthlyStats = months.map(({ month, monthIndex, yearValue }) => {
-      const monthTransactions = safeTransactions.filter((t: any) => {
-        const transactionDate = new Date(t.date);
-        return (
-          transactionDate.getMonth() === monthIndex &&
-          transactionDate.getFullYear() === yearValue
-        );
-      });
-
-      const income = monthTransactions
-        .filter((t: any) => t.transactionType === "INCOME")
-        .reduce(
-          (sum: number, t: any) => sum + (parseFloat(t.totalAmount) || 0),
-          0
-        );
-
-      const expenses = monthTransactions
-        .filter((t: any) => t.transactionType === "EXPENSE")
-        .reduce(
-          (sum: number, t: any) => sum + (parseFloat(t.totalAmount) || 0),
-          0
-        );
-
-      return {
-        month,
-        income,
-        expenses,
-      };
-    });
-
-    // Create clearer comparison data structure
-    return {
-      labels: monthlyStats.map((stat) => stat.month),
-      datasets: [
-        {
-          data: monthlyStats.map((stat) => stat.income),
-          color: (opacity = 1) => `rgba(16, 185, 129, ${opacity})`,
-          strokeWidth: 2,
-        },
-        {
-          data: monthlyStats.map((stat) => stat.expenses),
-          color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`,
-          strokeWidth: 2,
-        },
-      ],
-    };
-  }, [transactions]);
-
   const chartConfig = {
     backgroundColor: themeColors.background,
     backgroundGradientFrom: themeColors.background,
@@ -306,17 +275,16 @@ export default function Dashboard() {
     style: {
       borderRadius: 16,
     },
-    propsForDots: {
-      r: "6",
-      strokeWidth: "2",
-      stroke: colors.primary,
-    },
     formatYLabel: (value: string) => `${currencySymbol}${value}`,
     // Configure individual bar colors for multi-dataset charts
-    barPercentage: 0.7,
+    barPercentage: 0.8,
     // Custom properties for better bar spacing
-    showBarTops: false,
+    showBarTops: true,
     withScrollableDot: false,
+    // Bar-specific colors for income vs expenses
+    propsForBackgroundLines: {
+      strokeDasharray: "",
+    },
   };
 
   if (accountsLoading || transactionsLoading || budgetsLoading) {
@@ -340,7 +308,7 @@ export default function Dashboard() {
       ]}
     >
       <ScrollView
-        style={styles.scrollView}
+        style={[styles.scrollView, { paddingBottom: contentPaddingBottom }]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -373,7 +341,7 @@ export default function Dashboard() {
                     { color: isDark ? "#FFFFFF" : "#000000" },
                   ]}
                 >
-                  {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
+                  {user?.fullName?.charAt(0) || "U"}
                 </Typography>
               </View>
               <View style={styles.greetingText}>
@@ -655,6 +623,69 @@ export default function Dashboard() {
           </Card>
         )}
 
+        {/* Recent Transactions */}
+        <Card
+          isDark={isDark}
+          style={styles.transactionsCard}
+        >
+          <Typography
+            variant="h3"
+            style={[styles.sectionTitle, { color: themeColors.text.primary }]}
+          >
+            Recent Transactions
+          </Typography>
+          {safeTransactions.slice(0, 5).map((transaction: any) => (
+            <View
+              key={transaction.id}
+              style={[
+                styles.transactionItem,
+                { borderBottomColor: themeColors.border },
+              ]}
+            >
+              <View style={styles.transactionLeft}>
+                <Typography
+                  variant="body1"
+                  style={[
+                    styles.transactionTitle,
+                    { color: themeColors.text.primary },
+                  ]}
+                >
+                  {typeof transaction.title === "string"
+                    ? transaction.title
+                    : transaction.title?.name ||
+                      transaction.title?.code ||
+                      "Transaction"}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  style={[
+                    styles.transactionDate,
+                    { color: themeColors.text.tertiary },
+                  ]}
+                >
+                  {new Date(transaction.date).toLocaleDateString()}
+                </Typography>
+              </View>
+              <Typography
+                variant="body1"
+                style={[
+                  styles.transactionAmount,
+                  {
+                    color:
+                      transaction.transactionType === "INCOME"
+                        ? colors.income
+                        : colors.expense,
+                  },
+                ]}
+              >
+                {transaction.transactionType === "INCOME" ? "+" : "-"}
+                {currencySymbol}
+                {Math.abs(parseFloat(transaction.totalAmount) || 0).toFixed(2)}
+              </Typography>
+            </View>
+          ))}
+        </Card>
+
         {/* Current Budgets */}
         {budgets && budgets.length > 0 && (
           <Card
@@ -668,17 +699,10 @@ export default function Dashboard() {
               Current Budgets
             </Typography>
             {safeBudgets.slice(0, 3).map((budget: any) => {
-              const spent =
-                budget.budgetCategories?.reduce(
-                  (sum: number, cat: any) =>
-                    sum +
-                    ((cat as any).spentAmount
-                      ? Number((cat as any).spentAmount)
-                      : 0),
-                  0
-                ) || 0;
-              const allocated = Number(budget.amount) || 0;
-              const percentage = allocated > 0 ? (spent / allocated) * 100 : 0;
+              const budgetStat = budgetStats[budget.id];
+              const spent = Number(budgetStat?.totalSpent || 0);
+              const allocated = Number(budgetStat?.totalAllocated || 0);
+              const percentage = budgetStat?.overallPercentageUsed || 0;
               const isOverBudget = spent > allocated;
 
               return (
@@ -712,7 +736,12 @@ export default function Dashboard() {
                       {allocated}
                     </Typography>
                   </View>
-                  <View style={styles.progressBarContainer}>
+                  <View
+                    style={[
+                      styles.progressBarContainer,
+                      { backgroundColor: isDark ? "#374151" : "#E5E7EB" },
+                    ]}
+                  >
                     <View
                       style={[
                         styles.progressBar,
@@ -761,9 +790,7 @@ export default function Dashboard() {
           />
         </Card>
 
-        {/* Category Breakdown */}
-
-        {/* Monthly Comparison */}
+        {/* Category Spending Pie Chart */}
         <Card
           isDark={isDark}
           style={styles.chartCard}
@@ -772,115 +799,149 @@ export default function Dashboard() {
             variant="h3"
             style={[styles.sectionTitle, { color: themeColors.text.primary }]}
           >
-            Monthly Income vs Expenses Trend
+            Spending by Category
           </Typography>
 
-          {/* Legend */}
-          <View style={styles.chartLegend}>
-            <View style={styles.legendItem}>
-              <View
-                style={[styles.legendColor, { backgroundColor: colors.income }]}
-              />
-              <Typography
-                variant="caption"
+          {/* Time Period Selector */}
+          <View style={styles.timePeriodSelector}>
+            {[
+              { key: "thisWeek", label: "This Week" },
+              { key: "lastWeek", label: "Last Week" },
+              { key: "thisMonth", label: "This Month" },
+              { key: "lastMonth", label: "Last Month" },
+              { key: "thisYear", label: "This Year" },
+            ].map((period) => (
+              <TouchableOpacity
+                key={period.key}
                 style={[
-                  styles.legendText,
-                  { color: themeColors.text.secondary },
+                  styles.timePeriodButton,
+                  selectedTimePeriod === period.key &&
+                    styles.timePeriodButtonActive,
+                  {
+                    backgroundColor:
+                      selectedTimePeriod === period.key
+                        ? colors.primary
+                        : "transparent",
+                  },
                 ]}
+                onPress={() => setSelectedTimePeriod(period.key as any)}
               >
-                Income
-              </Typography>
-            </View>
-            <View style={styles.legendItem}>
-              <View
-                style={[
-                  styles.legendColor,
-                  { backgroundColor: colors.expense },
-                ]}
-              />
-              <Typography
-                variant="caption"
-                style={[
-                  styles.legendText,
-                  { color: themeColors.text.secondary },
-                ]}
-              >
-                Expenses
-              </Typography>
-            </View>
-          </View>
-
-          <LineChart
-            data={monthlyData}
-            width={width - spacing.lg * 2}
-            height={220}
-            chartConfig={chartConfig}
-            bezier
-            yAxisLabel={`${currencySymbol}`}
-            yAxisSuffix=""
-            style={styles.chart}
-            fromZero
-            segments={4}
-          />
-        </Card>
-
-        {/* Recent Transactions */}
-        <Card
-          isDark={isDark}
-          style={styles.transactionsCard}
-        >
-          <Typography
-            variant="h3"
-            style={[styles.sectionTitle, { color: themeColors.text.primary }]}
-          >
-            Recent Transactions
-          </Typography>
-          {safeTransactions.slice(0, 10).map((transaction: any) => (
-            <View
-              key={transaction.id}
-              style={[
-                styles.transactionItem,
-                { borderBottomColor: themeColors.border },
-              ]}
-            >
-              <View style={styles.transactionLeft}>
-                <Typography
-                  variant="body1"
-                  style={[
-                    styles.transactionTitle,
-                    { color: themeColors.text.primary },
-                  ]}
-                >
-                  {transaction.title || "Transaction"}
-                </Typography>
                 <Typography
                   variant="caption"
                   style={[
-                    styles.transactionDate,
-                    { color: themeColors.text.tertiary },
+                    styles.timePeriodButtonText,
+                    {
+                      color:
+                        selectedTimePeriod === period.key
+                          ? colors.text.white
+                          : themeColors.text.secondary,
+                    },
                   ]}
                 >
-                  {new Date(transaction.date).toLocaleDateString()}
+                  {period.label}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {categoryData.length > 0 ? (
+            <>
+              <PieChart
+                data={categoryData}
+                width={width - spacing.lg * 2}
+                height={220}
+                chartConfig={{
+                  backgroundColor: "transparent",
+                  backgroundGradientFrom: "transparent",
+                  backgroundGradientTo: "transparent",
+                  decimalPlaces: 0,
+                  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  labelColor: (opacity = 1) => themeColors.text.secondary,
+                }}
+                accessor="amount"
+                backgroundColor="transparent"
+                paddingLeft="15"
+                center={[10, 10]}
+                style={styles.pieChart}
+              />
+
+              {/* Category Summary */}
+              <View style={styles.categorySummary}>
+                <Typography
+                  variant="body2"
+                  style={[
+                    styles.categorySummaryText,
+                    { color: themeColors.text.secondary },
+                  ]}
+                >
+                  Total: {currencySymbol}
+                  {categoryData
+                    .reduce((sum, item) => sum + item.amount, 0)
+                    .toFixed(0)}
                 </Typography>
               </View>
+
+              {/* Category List */}
+              <View style={styles.categoryList}>
+                {categoryData.slice(0, 5).map((category, index) => (
+                  <View
+                    key={category.name}
+                    style={styles.categoryListItem}
+                  >
+                    <View style={styles.categoryListLeft}>
+                      <View
+                        style={[
+                          styles.categoryColorDot,
+                          { backgroundColor: category.color },
+                        ]}
+                      />
+                      <Typography
+                        variant="body2"
+                        style={[
+                          styles.categoryName,
+                          { color: themeColors.text.primary },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {category.name}
+                      </Typography>
+                    </View>
+                    <Typography
+                      variant="body2"
+                      style={[
+                        styles.categoryAmount,
+                        { color: themeColors.text.secondary },
+                      ]}
+                    >
+                      {currencySymbol}
+                      {category.amount.toFixed(0)}
+                    </Typography>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : (
+            <View style={styles.noDataContainer}>
               <Typography
                 variant="body1"
                 style={[
-                  styles.transactionAmount,
-                  {
-                    color:
-                      transaction.transactionType === "INCOME"
-                        ? colors.income
-                        : colors.expense,
-                  },
+                  styles.noDataText,
+                  { color: themeColors.text.secondary },
                 ]}
               >
-                {transaction.transactionType === "INCOME" ? "+" : "-"}
-                {currencySymbol}
-                {Math.abs(parseFloat(transaction.totalAmount) || 0).toFixed(2)}
+                No category data available
+              </Typography>
+              <Typography
+                variant="caption"
+                style={[
+                  styles.noDataSubtext,
+                  { color: themeColors.text.tertiary },
+                ]}
+              >
+                Add some expense transactions to see category breakdown
               </Typography>
             </View>
-          ))}
+          )}
         </Card>
       </ScrollView>
     </SafeAreaView>
@@ -925,6 +986,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   chart: {
+    marginVertical: spacing.md,
+    borderRadius: 16,
+  },
+  pieChart: {
     marginVertical: spacing.md,
     borderRadius: 16,
   },
@@ -989,6 +1054,60 @@ const styles = StyleSheet.create({
   budgetsCard: {
     marginVertical: spacing.md,
     padding: spacing.lg,
+  },
+  recentBudgetsCard: {
+    marginVertical: spacing.md,
+    padding: spacing.lg,
+  },
+  recentBudgetItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+  },
+  recentBudgetLeft: {
+    flex: 1,
+  },
+  recentBudgetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.xs / 2,
+  },
+  recentBudgetName: {
+    fontWeight: "600",
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  budgetStatusBadge: {
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    borderRadius: 8,
+    minWidth: 50,
+    alignItems: "center",
+  },
+  budgetStatusText: {
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  recentBudgetDate: {
+    fontSize: 11,
+  },
+  recentBudgetRight: {
+    alignItems: "flex-end",
+  },
+  recentBudgetAmount: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: spacing.xs,
+  },
+  viewBudgetButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  viewBudgetText: {
+    fontSize: 11,
+    fontWeight: "500",
   },
   budgetItem: {
     marginBottom: spacing.lg,
@@ -1179,28 +1298,6 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginLeft: spacing.xs / 2,
-  },
-  chartLegend: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.sm,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: spacing.md,
-  },
-  legendColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: spacing.xs,
-  },
-  legendText: {
-    fontSize: 12,
-    fontWeight: "500",
   },
   timePeriodSelector: {
     flexDirection: "row",

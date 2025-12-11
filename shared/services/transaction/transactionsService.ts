@@ -151,39 +151,6 @@ export const transactionsService = {
     };
   },
 
-  async getRecentTransactions(limit: number = 10): Promise<Transaction[]> {
-    const response = await apiClient.get(`/transactions/recent?limit=${limit}`);
-    const transactions = extractResponseData(response) as any[];
-    return transactions.map((transaction: any) => {
-      const firstItem = transaction.TransactionItems?.[0];
-      return {
-        ...transaction,
-        type: transaction.transactionType?.toLowerCase() || transaction.type,
-        status: transaction.status || transaction.status,
-        amount: firstItem?.amount || 0,
-        title: transaction.title,
-        category: firstItem?.Category
-          ? {
-              id: firstItem.Category.id,
-              name: firstItem.Category.name,
-              icon: firstItem.Category.icon,
-              color: firstItem.Category.color,
-              transactionType: firstItem.Category.transactionType,
-            }
-          : undefined,
-        account: firstItem?.Account
-          ? {
-              id: firstItem.Account.id,
-              accountName: firstItem.Account.accountName,
-            }
-          : undefined,
-        categoryId: firstItem?.categoryId,
-        accountId: firstItem?.accountId,
-        categoryIcon: firstItem?.Category?.icon,
-      };
-    });
-  },
-
   async getPendingTransactions(): Promise<Transaction[]> {
     const response = await apiClient.get("/transactions/pending");
     const transactions = extractResponseData(response) as any[];

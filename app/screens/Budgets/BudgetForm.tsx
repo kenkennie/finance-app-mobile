@@ -470,7 +470,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
               render={({ field: { onChange, value } }) => (
                 <SettingRow
                   label="Enable Carry Over"
-                  description="Automatically carry unused budget amounts to the next period"
+                  description="If enabled, the remaining amount from the current duration will be carried over to the next duration of this budget"
                   value={value ?? true}
                   onValueChange={onChange}
                 />
@@ -741,7 +741,7 @@ export default function BudgetForm({ mode, budgetId }: BudgetFormProps) {
               render={({ field: { onChange, value } }) => (
                 <SettingRow
                   label="Enable Carry Over"
-                  description="Automatically carry unused budget amounts to the next period"
+                  description="If enabled, the remaining amount from the current duration will be carried over to the next duration of this budget"
                   value={value ?? true}
                   onValueChange={onChange}
                 />

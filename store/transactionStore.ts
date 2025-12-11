@@ -17,7 +17,7 @@ interface TransactionStore extends TransactionState {
   getTransactions: (params?: GetTransactionsParams) => Promise<void>;
   loadMoreTransactions: (params?: GetTransactionsParams) => Promise<void>;
   getTransactionById: (id: string) => Promise<Transaction | null>;
-  getRecentTransactions: (limit?: number) => Promise<void>;
+  getRecentTransactions: (limit?: number) => Promise<void>; // Now uses getAllTransactions internally
   getPendingTransactions: () => Promise<void>;
   getTransactionsByDateRange: (startDate: Date, endDate: Date) => Promise<void>;
   setCurrentTransaction: (transaction: Transaction | null) => void;
@@ -223,12 +223,16 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      const transactions = await transactionsService.getRecentTransactions(
-        limit
-      );
+      // Use getAllTransactions with sorting and limiting instead of non-existent /recent endpoint
+      const response = await transactionsService.getAllTransactions({
+        limit,
+        sortBy: "date",
+        sortOrder: "desc",
+      });
 
       set({
-        transactions,
+        transactions: response.data,
+        summary: response.summary,
         isLoading: false,
       });
     } catch (error: any) {
