@@ -19,7 +19,12 @@ import { useAccountStore } from "@/store/accountStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useBudgetStore } from "@/store/budgetStore";
 import { useAuthStore } from "@/store/authStore";
-import { Card, Typography, LoadingIndicator } from "@/shared/components/ui";
+import {
+  Card,
+  Typography,
+  LoadingIndicator,
+  SectionTitle,
+} from "@/shared/components/ui";
 import { colors } from "@/theme/colors";
 import { spacing } from "@/theme/spacing";
 import { useTheme } from "@/theme/context/ThemeContext";
@@ -667,12 +672,10 @@ export default function Dashboard() {
             isDark={isDark}
             style={styles.sliderCard}
           >
-            <Typography
-              variant="h3"
-              style={[styles.sectionTitle, { color: themeColors.text.primary }]}
-            >
-              My Accounts
-            </Typography>
+            <SectionTitle
+              title="My Accounts"
+              onViewAll={() => router.push("/screens/Accounts/AccountsScreen")}
+            />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1136,7 +1139,7 @@ const styles = StyleSheet.create({
   },
   transactionsCard: {
     marginVertical: spacing.md,
-    padding: spacing.lg,
+    padding: spacing.md,
     marginBottom: spacing.xl,
   },
   transactionItem: {

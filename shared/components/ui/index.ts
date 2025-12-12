@@ -5,6 +5,7 @@ export { Card } from "./Card";
 export { Input } from "./Input";
 export { Header } from "./Header";
 export { Typography } from "./Typography";
+export { SectionTitle } from "./SectionTitle";
 export { Badge } from "./Badge";
 export { ConfirmationModal } from "./ConfirmationModal";
 
