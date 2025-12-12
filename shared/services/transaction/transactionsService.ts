@@ -81,39 +81,19 @@ export const transactionsService = {
     const response = await apiClient.get(
       `/transactions?${queryParams.toString()}`
     );
-    const data = extractResponseData(response) as TransactionsResponse;
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message || "Failed to fetch transactions");
+    }
+    const data = result.data as TransactionsResponse;
 
     // Transform the data to match mobile app expectations
     const transformedData: TransactionsResponse = {
       ...data,
-      data: data.data.map((transaction: any) => {
-        // For now, take the first transaction item (assuming single-item transactions)
-        const firstItem = transaction.TransactionItems?.[0];
-        return {
-          ...transaction,
-          type: transaction.transactionType?.toLowerCase() || transaction.type,
-          amount: firstItem?.amount || 0,
-          title: transaction.title,
-          category: firstItem?.Category
-            ? {
-                id: firstItem.Category.id,
-                name: firstItem.Category.name,
-                icon: firstItem.Category.icon,
-                color: firstItem.Category.color,
-                transactionType: firstItem.Category.transactionType,
-              }
-            : undefined,
-          account: firstItem?.Account
-            ? {
-                id: firstItem.Account.id,
-                accountName: firstItem.Account.accountName,
-              }
-            : undefined,
-          categoryId: firstItem?.categoryId,
-          accountId: firstItem?.accountId,
-          categoryIcon: firstItem?.Category?.icon,
-        };
-      }),
+      data: data.data.map((transaction: any) => ({
+        ...transaction,
+        type: transaction.transactionType?.toLowerCase() || transaction.type,
+      })),
     };
 
     return transformedData;
@@ -121,64 +101,28 @@ export const transactionsService = {
 
   async getTransactionById(id: string): Promise<Transaction> {
     const response = await apiClient.get(`/transactions/${id}`);
-    const transaction = extractResponseData(response) as any;
-    const firstItem = transaction.TransactionItems?.[0];
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message || "Failed to fetch transaction");
+    }
+    const transaction = result.data as any;
     return {
       ...transaction,
       type: transaction.transactionType?.toLowerCase() || transaction.type,
-      amount: firstItem?.amount || 0,
-      title: transaction.title,
-      category: firstItem?.Category
-        ? {
-            id: firstItem.Category.id,
-            name: firstItem.Category.name,
-            icon: firstItem.Category.icon,
-            color: firstItem.Category.color,
-            transactionType: firstItem.Category.transactionType,
-          }
-        : undefined,
-      account: firstItem?.Account
-        ? {
-            id: firstItem.Account.id,
-            accountName: firstItem.Account.accountName,
-          }
-        : undefined,
-      categoryId: firstItem?.categoryId,
-      accountId: firstItem?.accountId,
-      categoryIcon: firstItem?.Category?.icon,
     };
   },
 
   async getPendingTransactions(): Promise<Transaction[]> {
     const response = await apiClient.get("/transactions/pending");
-    const transactions = extractResponseData(response) as any[];
-    return transactions.map((transaction: any) => {
-      const firstItem = transaction.TransactionItems?.[0];
-      return {
-        ...transaction,
-        type: transaction.transactionType?.toLowerCase() || transaction.type,
-        amount: firstItem?.amount || 0,
-        title: transaction.title,
-        category: firstItem?.Category
-          ? {
-              id: firstItem.Category.id,
-              name: firstItem.Category.name,
-              icon: firstItem.Category.icon,
-              color: firstItem.Category.color,
-              transactionType: firstItem.Category.transactionType,
-            }
-          : undefined,
-        account: firstItem?.Account
-          ? {
-              id: firstItem.Account.id,
-              accountName: firstItem.Account.accountName,
-            }
-          : undefined,
-        categoryId: firstItem?.categoryId,
-        accountId: firstItem?.accountId,
-        categoryIcon: firstItem?.Category?.icon,
-      };
-    });
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message || "Failed to fetch pending transactions");
+    }
+    const transactions = result.data as any[];
+    return transactions.map((transaction: any) => ({
+      ...transaction,
+      type: transaction.transactionType?.toLowerCase() || transaction.type,
+    }));
   },
 
   async getTransactionsByDateRange(
@@ -192,48 +136,43 @@ export const transactionsService = {
     const response = await apiClient.get(
       `/transactions/by-date?${queryParams.toString()}`
     );
-    const transactions = extractResponseData(response) as any[];
-    return transactions.map((transaction: any) => {
-      const firstItem = transaction.TransactionItems?.[0];
-      return {
-        ...transaction,
-        type: transaction.transactionType?.toLowerCase() || transaction.type,
-        amount: firstItem?.amount || 0,
-        title: transaction.title,
-        category: firstItem?.Category
-          ? {
-              id: firstItem.Category.id,
-              name: firstItem.Category.name,
-              icon: firstItem.Category.icon,
-              color: firstItem.Category.color,
-              transactionType: firstItem.Category.transactionType,
-            }
-          : undefined,
-        account: firstItem?.Account
-          ? {
-              id: firstItem.Account.id,
-              accountName: firstItem.Account.accountName,
-            }
-          : undefined,
-        categoryId: firstItem?.categoryId,
-        accountId: firstItem?.accountId,
-        categoryIcon: firstItem?.Category?.icon,
-      };
-    });
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(
+        result.message || "Failed to fetch transactions by date range"
+      );
+    }
+    const transactions = result.data as any[];
+    return transactions.map((transaction: any) => ({
+      ...transaction,
+      type: transaction.transactionType?.toLowerCase() || transaction.type,
+    }));
   },
 
   async createTransaction(data: any): Promise<any> {
     const response = await apiClient.post("/transactions", data);
-    return extractResponseData(response);
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message || "Failed to create transaction");
+    }
+    return result.data;
   },
 
   async updateTransaction(id: string, data: any): Promise<any> {
     const response = await apiClient.patch(`/transactions/${id}`, data);
-    return extractResponseData(response);
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message || "Failed to update transaction");
+    }
+    return result.data;
   },
 
   async deleteTransaction(id: string): Promise<any> {
     const response = await apiClient.delete(`/transactions/${id}`);
-    return extractResponseData(response);
+    const result = handleApiResponse(response);
+    if (!result.success) {
+      throw new Error(result.message || "Failed to delete transaction");
+    }
+    return result.data;
   },
 };

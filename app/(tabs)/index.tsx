@@ -236,9 +236,12 @@ export default function Dashboard() {
         );
       })
       .forEach((t) => {
-        const category = t.TransactionItems?.[0]?.Category?.name || "Other";
-        categoryTotals[category] =
-          (categoryTotals[category] || 0) + (t.totalAmount || 0);
+        // Iterate through all transaction items to properly categorize spending
+        t.TransactionItems?.forEach((item: any) => {
+          const category = item.Category?.name || "Other";
+          categoryTotals[category] =
+            (categoryTotals[category] || 0) + (item.amount || 0);
+        });
       });
 
     const colors = [
@@ -663,7 +666,7 @@ export default function Dashboard() {
                     { color: themeColors.text.tertiary },
                   ]}
                 >
-                  {new Date(transaction.date).toLocaleDateString()}
+                  {transaction.date}
                 </Typography>
               </View>
               <Typography
@@ -678,9 +681,12 @@ export default function Dashboard() {
                   },
                 ]}
               >
-                {transaction.transactionType === "INCOME" ? "+" : "-"}
-                {currencySymbol}
-                {Math.abs(parseFloat(transaction.totalAmount) || 0).toFixed(2)}
+                {transaction.formattedAmount ||
+                  `${
+                    transaction.transactionType === "INCOME" ? "+" : "-"
+                  }${currencySymbol}${Math.abs(
+                    parseFloat(transaction.totalAmount) || 0
+                  ).toFixed(2)}`}
               </Typography>
             </View>
           ))}
