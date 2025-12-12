@@ -28,11 +28,21 @@ export const accountService = {
     };
   },
 
-  async getAccounts(): Promise<Account[]> {
-    const response = await apiClient.get<ApiSuccessResponse<Account[]>>(
-      "/account"
-    );
-    return extractResponseData(response);
+  async getAccounts(): Promise<{
+    accounts: Account[];
+    totalAccountBalance: string;
+  }> {
+    const response = await apiClient.get<
+      ApiSuccessResponse<{
+        formattedAccounts: Account[];
+        totalAccountBalance: string;
+      }>
+    >("/account");
+    const data = extractResponseData(response);
+    return {
+      accounts: data.formattedAccounts,
+      totalAccountBalance: data.totalAccountBalance,
+    };
   },
 
   async getAccountById(id: string): Promise<Account> {

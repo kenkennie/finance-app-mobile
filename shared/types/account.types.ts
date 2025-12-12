@@ -16,10 +16,12 @@ export interface Account {
   formattedOpeningBalance: string;
   formatCreatedDate: string;
   formatUpdatedDate: string;
+  totalAccountBalance?: string;
 }
 
 export interface AccountState {
   accounts: Account[];
+  totalAccountBalance: string;
   currentAccount: Account | null;
   isLoading: boolean;
   error: string | null;

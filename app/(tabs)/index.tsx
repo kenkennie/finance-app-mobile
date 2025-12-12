@@ -39,6 +39,7 @@ export default function Dashboard() {
   const { user } = useAuthStore();
   const {
     accounts = [],
+    totalAccountBalance,
     getAccounts,
     isLoading: accountsLoading,
   } = useAccountStore();
@@ -115,11 +116,6 @@ export default function Dashboard() {
     [isDark]
   );
 
-  const totalBalance = safeAccounts.reduce(
-    (sum, account) =>
-      sum + (parseFloat(account.balance?.toString() || "0") || 0),
-    0
-  );
   const totalIncome = summary?.totalIncome || 0;
   const totalExpenses = summary?.totalExpenses || 0;
 
@@ -515,7 +511,7 @@ export default function Dashboard() {
                 ]}
               >
                 {currencySymbol}
-                {totalBalance}
+                {totalAccountBalance}
               </Typography>
             </View>
 
@@ -672,10 +668,12 @@ export default function Dashboard() {
             isDark={isDark}
             style={styles.sliderCard}
           >
-            <SectionTitle
-              title="My Accounts"
-              onViewAll={() => router.push("/screens/Accounts/AccountsScreen")}
-            />
+            <Typography
+              variant="h3"
+              style={[styles.sectionTitle, { color: themeColors.text.primary }]}
+            >
+              My Accounts
+            </Typography>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}

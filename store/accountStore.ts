@@ -28,6 +28,7 @@ interface AccountStore extends AccountState {
 export const useAccountStore = create<AccountStore>((set, get) => ({
   // Initial state
   accounts: [],
+  totalAccountBalance: "0",
   currentAccount: null,
   isLoading: false,
   error: null,
@@ -75,10 +76,12 @@ export const useAccountStore = create<AccountStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
 
-      const accounts = await accountService.getAccounts();
+      const { accounts, totalAccountBalance } =
+        await accountService.getAccounts();
 
       set({
         accounts,
+        totalAccountBalance,
         isLoading: false,
       });
     } catch (error: any) {
