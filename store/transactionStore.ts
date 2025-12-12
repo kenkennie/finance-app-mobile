@@ -232,7 +232,7 @@ export const useTransactionStore = create<TransactionStore>((set, get) => ({
 
       set({
         transactions: response.data,
-        summary: response.summary,
+        summary: response.summary?.summary,
         isLoading: false,
       });
     } catch (error: any) {

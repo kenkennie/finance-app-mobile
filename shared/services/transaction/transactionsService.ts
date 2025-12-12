@@ -30,6 +30,15 @@ interface GetTransactionsParams {
 
 interface TransactionsResponse {
   data: Transaction[];
+  summary?: {
+    summary: {
+      totalTransactions: number;
+      totalIncome: number;
+      totalExpenses: number;
+      netAmount: number;
+    };
+    totalItems: number;
+  };
   meta: {
     total: number;
     page: number;

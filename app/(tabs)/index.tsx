@@ -12,7 +12,7 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { LineChart, PieChart } from "react-native-chart-kit";
+import { LineChart, PieChart, BarChart } from "react-native-chart-kit";
 import { useRouter } from "expo-router";
 import { Plus, CreditCard, PiggyBank, BarChart3 } from "lucide-react-native";
 import { useAccountStore } from "@/store/accountStore";
@@ -73,13 +73,6 @@ export default function Dashboard() {
     loadDashboardData();
   }, []);
 
-  // Separate effect to reload transactions when component mounts/focuses
-  useEffect(() => {
-    if (!transactions || transactions.length === 0) {
-      getRecentTransactions(50).catch((error) => {});
-    }
-  }, [transactions?.length, transactionsLoading]);
-
   // Debug effect to track component lifecycle
 
   const handleRefresh = async () => {
@@ -125,6 +118,17 @@ export default function Dashboard() {
   const totalIncome = summary?.totalIncome || 0;
   const totalExpenses = summary?.totalExpenses || 0;
 
+  const totalBudgeted = safeBudgets.reduce((sum, budget) => {
+    const stat = budgetDetails[budget.id];
+    return sum + (stat?.totalAllocated || 0);
+  }, 0);
+  const totalSpentOnBudgets = safeBudgets.reduce((sum, budget) => {
+    const stat = budgetDetails[budget.id];
+    return sum + (stat?.totalSpent || 0);
+  }, 0);
+  const totalRemaining = totalBudgeted - totalSpentOnBudgets;
+  const numberOfBudgets = safeBudgets.length;
+
   // Get currency from user profile or default to USD
   const currency = user?.currency || "USD";
   const currencySymbol =
@@ -144,17 +148,57 @@ export default function Dashboard() {
     return "Good evening";
   };
 
+  const [selectedWeeklyTimePeriod, setSelectedWeeklyTimePeriod] = useState<
+    "lastWeek" | "thisWeek" | "lastMonth" | "thisMonth" | "thisYear"
+  >("thisWeek");
+
   // Calculate real chart data from transactions
   const chartData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      return date.toISOString().split("T")[0];
-    });
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
 
-    const dailyExpenses = last7Days.map((date) => {
+    switch (selectedWeeklyTimePeriod) {
+      case "lastWeek":
+        startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "thisWeek":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+        break;
+      case "lastMonth":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        startDate = lastMonth;
+        endDate = lastMonthEnd;
+        break;
+      case "thisMonth":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = now;
+        break;
+      case "thisYear":
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = now;
+        break;
+      default:
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+    }
+
+    // Generate array of dates from start to end
+    const dates = [];
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+
+    const dailyExpenses = dates.map((date) => {
+      const dateStr = date.toISOString().split("T")[0];
       const dayTransactions = safeTransactions.filter(
-        (t: any) => t.date.startsWith(date) && t.transactionType === "EXPENSE"
+        (t: any) =>
+          t.date.startsWith(dateStr) && t.transactionType === "EXPENSE"
       );
       return dayTransactions.reduce(
         (sum: number, t: any) => sum + (parseFloat(t.totalAmount) || 0),
@@ -162,11 +206,33 @@ export default function Dashboard() {
       );
     });
 
+    // For labels, adjust based on period length
+    let labels;
+    if (dates.length <= 7) {
+      labels = dates.map((date) =>
+        date.toLocaleDateString("en-US", { weekday: "short" })
+      );
+    } else if (dates.length <= 31) {
+      labels = dates.map((date) => date.getDate().toString());
+    } else {
+      // For longer periods, show monthly labels
+      const monthlyLabels: string[] = [];
+      let currentMonth = -1;
+      dates.forEach((date) => {
+        if (date.getMonth() !== currentMonth) {
+          monthlyLabels.push(
+            date.toLocaleDateString("en-US", { month: "short" })
+          );
+          currentMonth = date.getMonth();
+        } else {
+          monthlyLabels.push("");
+        }
+      });
+      labels = monthlyLabels;
+    }
+
     return {
-      labels: last7Days.map((date) => {
-        const d = new Date(date);
-        return d.toLocaleDateString("en-US", { weekday: "short" });
-      }),
+      labels,
       datasets: [
         {
           data: dailyExpenses,
@@ -175,7 +241,7 @@ export default function Dashboard() {
         },
       ],
     };
-  }, [transactions]);
+  }, [safeTransactions, selectedWeeklyTimePeriod]);
 
   // Category spending data with time filtering
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<
@@ -263,6 +329,36 @@ export default function Dashboard() {
       legendFontSize: 12,
     }));
   }, [safeTransactions, selectedTimePeriod, themeColors.text.primary]);
+
+  // Budget chart data for bar chart
+  const budgetChartData = useMemo(() => {
+    const labels = safeBudgets.map((budget) =>
+      budget.name.length > 10
+        ? budget.name.substring(0, 10) + "..."
+        : budget.name
+    );
+    const allocated = safeBudgets.map(
+      (budget) => budgetDetails[budget.id]?.totalAllocated || 0
+    );
+
+    const spent = safeBudgets.map(
+      (budget) => budgetDetails[budget.id]?.totalSpent || 0
+    );
+
+    return {
+      labels,
+      datasets: [
+        {
+          data: allocated,
+          color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`, // blue for allocated
+        },
+        {
+          data: spent,
+          color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`, // red for spent
+        },
+      ],
+    };
+  }, [safeBudgets, budgetDetails]);
 
   const chartConfig = {
     backgroundColor: themeColors.background,
@@ -789,6 +885,49 @@ export default function Dashboard() {
           >
             Weekly Spending
           </Typography>
+
+          {/* Time Period Selector */}
+          <View style={styles.timePeriodSelector}>
+            {[
+              { key: "thisWeek", label: "This Week" },
+              { key: "lastWeek", label: "Last Week" },
+              { key: "thisMonth", label: "This Month" },
+              { key: "lastMonth", label: "Last Month" },
+              { key: "thisYear", label: "This Year" },
+            ].map((period) => (
+              <TouchableOpacity
+                key={period.key}
+                style={[
+                  styles.timePeriodButton,
+                  selectedWeeklyTimePeriod === period.key &&
+                    styles.timePeriodButtonActive,
+                  {
+                    backgroundColor:
+                      selectedWeeklyTimePeriod === period.key
+                        ? colors.primary
+                        : "transparent",
+                  },
+                ]}
+                onPress={() => setSelectedWeeklyTimePeriod(period.key as any)}
+              >
+                <Typography
+                  variant="caption"
+                  style={[
+                    styles.timePeriodButtonText,
+                    {
+                      color:
+                        selectedWeeklyTimePeriod === period.key
+                          ? colors.text.white
+                          : themeColors.text.secondary,
+                    },
+                  ]}
+                >
+                  {period.label}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <LineChart
             data={chartData}
             width={width - spacing.lg * 2}
