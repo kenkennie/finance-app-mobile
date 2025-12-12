@@ -697,14 +697,8 @@ export default function Dashboard() {
                     variant="h2"
                     style={[styles.accountBalance, { color: "#FFFFFF" }]}
                   >
-                    {account.currency === "USD"
-                      ? "$"
-                      : account.currency === "EUR"
-                      ? "€"
-                      : account.currency === "GBP"
-                      ? "£"
-                      : account.currency}
-                    {parseFloat(account.balance?.toString() || "0")}
+                    {account.currency}
+                    {account.formattedBalance}
                   </Typography>
                   <Typography
                     variant="caption"
@@ -1127,6 +1121,7 @@ const styles = StyleSheet.create({
   chartCard: {
     marginVertical: spacing.md,
     padding: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
   sectionTitle: {
     marginBottom: spacing.md,

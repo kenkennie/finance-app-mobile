@@ -12,6 +12,10 @@ export interface Account {
   isSystem: boolean;
   createdAt: string;
   updatedAt: string;
+  formattedBalance: string;
+  formattedOpeningBalance: string;
+  formatCreatedDate: string;
+  formatUpdatedDate: string;
 }
 
 export interface AccountState {

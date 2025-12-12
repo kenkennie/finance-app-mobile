@@ -51,18 +51,6 @@ const AccountDetailsScreen = () => {
     }
   };
 
-  const formatCurrency = (amount: number): string => {
-    return `KSh ${amount.toLocaleString()}`;
-  };
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   const handleEditAccount = () => {
     if (account) {
       router.replace(
@@ -211,7 +199,8 @@ const AccountDetailsScreen = () => {
               variant="h1"
               style={[styles.balance, isDark ? styles.balanceDark : {}]}
             >
-              {formatCurrency(account.balance)}
+              {account.currency}
+              {account.formattedBalance}
             </Typography>
             <Typography
               style={[
@@ -219,7 +208,8 @@ const AccountDetailsScreen = () => {
                 isDark ? styles.openingBalanceDark : {},
               ]}
             >
-              Opening: {formatCurrency(account.openingBalance)}
+              Opening:
+              {account.formattedOpeningBalance}
             </Typography>
           </View>
         </Card>
@@ -292,7 +282,7 @@ const AccountDetailsScreen = () => {
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {formatDate(account.createdAt)}
+              {account.formatCreatedDate}
             </Typography>
           </View>
 
@@ -305,7 +295,7 @@ const AccountDetailsScreen = () => {
             <Typography
               style={[styles.infoValue, isDark ? styles.infoValueDark : {}]}
             >
-              {formatDate(account.updatedAt)}
+              {account.formatUpdatedDate}
             </Typography>
           </View>
         </Card>

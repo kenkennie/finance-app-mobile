@@ -41,7 +41,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
           </Text>
         </View>
         <Text style={[styles.balance, isDark && styles.balanceDark]}>
-          {formatCurrency(account.balance)}
+          {account.currency}
+          {account.formattedBalance}
         </Text>
       </View>
     </Card>

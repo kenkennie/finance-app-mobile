@@ -80,7 +80,7 @@ const TransactionCard: React.FC<TransactionCardProps> = ({
 
           <View style={styles.footer}>
             <Text style={[styles.date, isDark && styles.dateDark]}>
-              {formatDate(transaction.date)}
+              {transaction.formatedDate}
             </Text>
           </View>
         </View>
