@@ -10,7 +10,7 @@ interface CategoryCardProps {
   isDark: boolean;
 }
 
-export const CategoryCard: React.FC<CategoryCardProps> = ({
+const CategoryCard: React.FC<CategoryCardProps> = ({
   onPress,
   isDark = false,
   category,
@@ -55,6 +55,9 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     </Card>
   );
 };
+
+export { CategoryCard };
+export default CategoryCard;
 
 const styles = StyleSheet.create({
   container: {

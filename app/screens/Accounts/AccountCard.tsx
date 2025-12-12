@@ -14,7 +14,7 @@ const formatCurrency = (amount: number): string => {
   return `KSh ${amount.toLocaleString()}`;
 };
 
-export const AccountCard: React.FC<AccountCardProps> = ({
+const AccountCard: React.FC<AccountCardProps> = ({
   onPress,
   isDark = false,
   account,
@@ -47,6 +47,9 @@ export const AccountCard: React.FC<AccountCardProps> = ({
     </Card>
   );
 };
+
+export { AccountCard };
+export default AccountCard;
 
 const styles = StyleSheet.create({
   container: {

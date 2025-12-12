@@ -28,7 +28,7 @@ interface BudgetCardProps {
   }[];
 }
 
-export const BudgetCard: React.FC<BudgetCardProps> = ({
+const BudgetCard: React.FC<BudgetCardProps> = ({
   budget,
   onPress,
   onLongPress,
@@ -151,6 +151,9 @@ export const BudgetCard: React.FC<BudgetCardProps> = ({
     </Card>
   );
 };
+
+export { BudgetCard };
+export default BudgetCard;
 
 const styles = StyleSheet.create({
   container: {

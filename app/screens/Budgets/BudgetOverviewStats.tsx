@@ -11,7 +11,7 @@ interface BudgetOverviewStatsProps {
   isDark?: boolean;
 }
 
-export const BudgetOverviewStats: React.FC<BudgetOverviewStatsProps> = ({
+const BudgetOverviewStats: React.FC<BudgetOverviewStatsProps> = ({
   stats,
   isDark = false,
 }) => {
@@ -282,6 +282,9 @@ export const BudgetOverviewStats: React.FC<BudgetOverviewStatsProps> = ({
     </Card>
   );
 };
+
+export { BudgetOverviewStats };
+export default BudgetOverviewStats;
 
 const styles = StyleSheet.create({
   card: {

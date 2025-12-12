@@ -11,7 +11,7 @@ interface TransactionCardProps {
   isDark: boolean;
 }
 
-export const TransactionCard: React.FC<TransactionCardProps> = ({
+const TransactionCard: React.FC<TransactionCardProps> = ({
   onPress,
   onLongPress,
   isDark = false,
@@ -88,6 +88,9 @@ export const TransactionCard: React.FC<TransactionCardProps> = ({
     </Card>
   );
 };
+
+export { TransactionCard };
+export default TransactionCard;
 
 const styles = StyleSheet.create({
   container: {
