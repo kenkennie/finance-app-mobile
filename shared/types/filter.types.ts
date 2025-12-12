@@ -59,4 +59,5 @@ export interface Transaction {
   TransactionItems?: TransactionItem[];
   totalAmount?: number;
   formattedAmount?: string;
+  formatedDate?: string;
 }

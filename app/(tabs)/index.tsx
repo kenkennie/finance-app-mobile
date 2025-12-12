@@ -63,7 +63,7 @@ export default function Dashboard() {
     const loadDashboardData = async () => {
       try {
         await getAccounts();
-        await getRecentTransactions(5);
+        await getRecentTransactions(50);
         await getBudgets();
       } catch (error) {
         console.error("Error loading dashboard data:", error);
@@ -76,23 +76,18 @@ export default function Dashboard() {
   // Separate effect to reload transactions when component mounts/focuses
   useEffect(() => {
     if (!transactions || transactions.length === 0) {
-      getRecentTransactions(5).catch((error) => {});
+      getRecentTransactions(50).catch((error) => {});
     }
   }, [transactions?.length, transactionsLoading]);
 
   // Debug effect to track component lifecycle
-  useEffect(() => {
-    return () => {
-      console.log("Dashboard component unmounting");
-    };
-  });
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
       await Promise.all([
         getAccounts(),
-        getRecentTransactions(5),
+        getRecentTransactions(50),
         getBudgets(),
       ]);
     } catch (error) {
@@ -229,6 +224,7 @@ export default function Dashboard() {
     safeTransactions
       .filter((t) => {
         const transactionDate = new Date(t.date);
+
         return (
           t.transactionType === "EXPENSE" &&
           transactionDate >= startDate &&
@@ -240,7 +236,7 @@ export default function Dashboard() {
         t.TransactionItems?.forEach((item: any) => {
           const category = item.Category?.name || "Other";
           categoryTotals[category] =
-            (categoryTotals[category] || 0) + (item.amount || 0);
+            (categoryTotals[category] || 0) + (parseFloat(item.amount) || 0);
         });
       });
 
@@ -418,7 +414,7 @@ export default function Dashboard() {
                 ]}
               >
                 {currencySymbol}
-                {totalBalance.toFixed(2)}
+                {totalBalance}
               </Typography>
             </View>
 
@@ -439,7 +435,7 @@ export default function Dashboard() {
                   style={[styles.atmStatValue, { color: colors.income }]}
                 >
                   +{currencySymbol}
-                  {totalIncome.toFixed(2)}
+                  {totalIncome}
                 </Typography>
               </View>
               <View style={styles.atmDivider} />
@@ -458,7 +454,7 @@ export default function Dashboard() {
                   style={[styles.atmStatValue, { color: colors.expense }]}
                 >
                   -{currencySymbol}
-                  {totalExpenses.toFixed(2)}
+                  {totalExpenses}
                 </Typography>
               </View>
             </View>
@@ -666,7 +662,7 @@ export default function Dashboard() {
                     { color: themeColors.text.tertiary },
                   ]}
                 >
-                  {transaction.date}
+                  {transaction.formatedDate}
                 </Typography>
               </View>
               <Typography
@@ -686,7 +682,7 @@ export default function Dashboard() {
                     transaction.transactionType === "INCOME" ? "+" : "-"
                   }${currencySymbol}${Math.abs(
                     parseFloat(transaction.totalAmount) || 0
-                  ).toFixed(2)}`}
+                  )}`}
               </Typography>
             </View>
           ))}
@@ -888,9 +884,7 @@ export default function Dashboard() {
                   ]}
                 >
                   Total: {currencySymbol}
-                  {categoryData
-                    .reduce((sum, item) => sum + item.amount, 0)
-                    .toFixed(0)}
+                  {categoryData.reduce((sum, item) => sum + item.amount, 0)}
                 </Typography>
               </View>
 
@@ -927,7 +921,7 @@ export default function Dashboard() {
                       ]}
                     >
                       {currencySymbol}
-                      {category.amount.toFixed(0)}
+                      {category.amount}
                     </Typography>
                   </View>
                 ))}
