@@ -119,27 +119,8 @@ export default function Dashboard() {
   const totalIncome = summary?.totalIncome || 0;
   const totalExpenses = summary?.totalExpenses || 0;
 
-  const totalBudgeted = safeBudgets.reduce((sum, budget) => {
-    const stat = budgetDetails[budget.id];
-    return sum + (stat?.totalAllocated || 0);
-  }, 0);
-  const totalSpentOnBudgets = safeBudgets.reduce((sum, budget) => {
-    const stat = budgetDetails[budget.id];
-    return sum + (stat?.totalSpent || 0);
-  }, 0);
-  const totalRemaining = totalBudgeted - totalSpentOnBudgets;
-  const numberOfBudgets = safeBudgets.length;
-
   // Get currency from user profile or default to USD
-  const currency = user?.currency || "USD";
-  const currencySymbol =
-    currency === "USD"
-      ? "KSh"
-      : currency === "EUR"
-      ? "€"
-      : currency === "GBP"
-      ? "£"
-      : currency;
+  const currency = user?.currency;
 
   // Get time-based greeting
   const getTimeBasedGreeting = () => {
@@ -371,7 +352,7 @@ export default function Dashboard() {
     style: {
       borderRadius: 16,
     },
-    formatYLabel: (value: string) => `${currencySymbol}${value}`,
+    formatYLabel: (value: string) => `${currency}${value}`,
     // Configure individual bar colors for multi-dataset charts
     barPercentage: 0.8,
     // Custom properties for better bar spacing
@@ -510,7 +491,7 @@ export default function Dashboard() {
                   { color: isDark ? "#ffffff" : "#000000" },
                 ]}
               >
-                {currencySymbol}
+                {currency}
                 {totalAccountBalance}
               </Typography>
             </View>
@@ -531,7 +512,7 @@ export default function Dashboard() {
                   variant="body1"
                   style={[styles.atmStatValue, { color: colors.income }]}
                 >
-                  +{currencySymbol}
+                  +{currency}
                   {totalIncome}
                 </Typography>
               </View>
@@ -550,7 +531,7 @@ export default function Dashboard() {
                   variant="body1"
                   style={[styles.atmStatValue, { color: colors.expense }]}
                 >
-                  -{currencySymbol}
+                  -{currency}
                   {totalExpenses}
                 </Typography>
               </View>
@@ -771,7 +752,7 @@ export default function Dashboard() {
                 {transaction.formattedAmount ||
                   `${
                     transaction.transactionType === "INCOME" ? "+" : "-"
-                  }${currencySymbol}${Math.abs(
+                  }${currency}${Math.abs(
                     parseFloat(transaction.totalAmount) || 0
                   )}`}
               </Typography>
@@ -1017,7 +998,7 @@ export default function Dashboard() {
                     { color: themeColors.text.secondary },
                   ]}
                 >
-                  Total: {currencySymbol}
+                  Total: {currency}
                   {categoryData.reduce((sum, item) => sum + item.amount, 0)}
                 </Typography>
               </View>
@@ -1054,7 +1035,7 @@ export default function Dashboard() {
                         { color: themeColors.text.secondary },
                       ]}
                     >
-                      {currencySymbol}
+                      {currency}
                       {category.amount}
                     </Typography>
                   </View>

@@ -34,13 +34,13 @@ export const accountService = {
   }> {
     const response = await apiClient.get<
       ApiSuccessResponse<{
-        formattedAccounts: Account[];
+        accountsData: Account[];
         totalAccountBalance: string;
       }>
     >("/account");
     const data = extractResponseData(response);
     return {
-      accounts: data.formattedAccounts,
+      accounts: data.accountsData,
       totalAccountBalance: data.totalAccountBalance,
     };
   },
