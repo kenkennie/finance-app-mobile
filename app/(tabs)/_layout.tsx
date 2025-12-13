@@ -10,6 +10,8 @@ import {
   User,
   TrendingUp,
   BarChart,
+  ArrowRightLeft,
+  PiggyBank,
 } from "lucide-react-native";
 import { useTheme } from "@/theme/context/ThemeContext";
 
@@ -65,7 +67,7 @@ export default function TabsLayout() {
         options={{
           title: "Transactions",
           tabBarIcon: ({ color, size }) => (
-            <DollarSign
+            <ArrowRightLeft
               color={color}
               size={size || 24}
             />
@@ -77,7 +79,7 @@ export default function TabsLayout() {
         options={{
           title: "Budgets",
           tabBarIcon: ({ color, size }) => (
-            <Target
+            <PiggyBank
               color={color}
               size={size || 24}
             />

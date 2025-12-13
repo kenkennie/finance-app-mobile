@@ -14,7 +14,14 @@ import {
 } from "react-native-safe-area-context";
 import { LineChart, PieChart, BarChart } from "react-native-chart-kit";
 import { useRouter } from "expo-router";
-import { Plus, CreditCard, PiggyBank, BarChart3 } from "lucide-react-native";
+import {
+  Plus,
+  CreditCard,
+  PiggyBank,
+  BarChart3,
+  ArrowRightLeft,
+  ListChevronsDownUp,
+} from "lucide-react-native";
 import { useAccountStore } from "@/store/accountStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useBudgetStore } from "@/store/budgetStore";
@@ -118,6 +125,7 @@ export default function Dashboard() {
 
   const totalIncome = summary?.totalIncome || 0;
   const totalExpenses = summary?.totalExpenses || 0;
+  const netBalance = totalIncome - totalExpenses;
 
   // Get currency from user profile or default to USD
   const currency = user?.currency;
@@ -312,36 +320,6 @@ export default function Dashboard() {
     }));
   }, [safeTransactions, selectedTimePeriod, themeColors.text.primary]);
 
-  // Budget chart data for bar chart
-  const budgetChartData = useMemo(() => {
-    const labels = safeBudgets.map((budget) =>
-      budget.name.length > 10
-        ? budget.name.substring(0, 10) + "..."
-        : budget.name
-    );
-    const allocated = safeBudgets.map(
-      (budget) => budgetDetails[budget.id]?.totalAllocated || 0
-    );
-
-    const spent = safeBudgets.map(
-      (budget) => budgetDetails[budget.id]?.totalSpent || 0
-    );
-
-    return {
-      labels,
-      datasets: [
-        {
-          data: allocated,
-          color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`, // blue for allocated
-        },
-        {
-          data: spent,
-          color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`, // red for spent
-        },
-      ],
-    };
-  }, [safeBudgets, budgetDetails]);
-
   const chartConfig = {
     backgroundColor: themeColors.background,
     backgroundGradientFrom: themeColors.background,
@@ -535,6 +513,29 @@ export default function Dashboard() {
                   {totalExpenses}
                 </Typography>
               </View>
+              <View style={styles.atmDivider} />
+              <View style={styles.atmStat}>
+                <Typography
+                  variant="caption"
+                  style={[
+                    styles.atmStatLabel,
+                    { color: isDark ? "#cccccc" : "#666666" },
+                  ]}
+                >
+                  NET BALANCE
+                </Typography>
+                <Typography
+                  variant="body1"
+                  style={[
+                    styles.atmStatValue,
+                    { color: netBalance >= 0 ? colors.income : colors.expense },
+                  ]}
+                >
+                  {netBalance >= 0 ? "+" : "-"}
+                  {currency}
+                  {Math.abs(netBalance)}
+                </Typography>
+              </View>
             </View>
           </View>
         </View>
@@ -560,9 +561,9 @@ export default function Dashboard() {
                 router.push("/screens/Transactions/addTransaction")
               }
             >
-              <Plus
+              <ArrowRightLeft
                 size={32}
-                color={colors.text.white}
+                color={colors.secondary}
               />
               <Typography
                 variant="caption"
@@ -580,33 +581,11 @@ export default function Dashboard() {
                 styles.quickActionCard,
                 { backgroundColor: themeColors.background },
               ]}
-              onPress={() => router.push("/screens/Accounts/AddAccountSreen")}
-            >
-              <CreditCard
-                size={32}
-                color={colors.text.white}
-              />
-              <Typography
-                variant="caption"
-                style={[
-                  styles.quickActionText,
-                  { color: themeColors.text.secondary },
-                ]}
-              >
-                Account
-              </Typography>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.quickActionCard,
-                { backgroundColor: themeColors.background },
-              ]}
               onPress={() => router.push("/screens/Budgets/BudgetForm")}
             >
               <PiggyBank
                 size={32}
-                color={colors.text.white}
+                color={colors.secondary}
               />
               <Typography
                 variant="caption"
@@ -624,11 +603,11 @@ export default function Dashboard() {
                 styles.quickActionCard,
                 { backgroundColor: themeColors.background },
               ]}
-              onPress={() => router.push("/(tabs)/transactions")}
+              onPress={() => router.push("/screens/Accounts/AddAccountSreen")}
             >
-              <BarChart3
+              <CreditCard
                 size={32}
-                color={colors.text.white}
+                color={colors.secondary}
               />
               <Typography
                 variant="caption"
@@ -637,7 +616,29 @@ export default function Dashboard() {
                   { color: themeColors.text.secondary },
                 ]}
               >
-                Reports
+                Account
+              </Typography>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.quickActionCard,
+                { backgroundColor: themeColors.background },
+              ]}
+              onPress={() => router.push("/screens/Categories/AddCategory")}
+            >
+              <ListChevronsDownUp
+                size={32}
+                color={colors.secondary}
+              />
+              <Typography
+                variant="caption"
+                style={[
+                  styles.quickActionText,
+                  { color: themeColors.text.secondary },
+                ]}
+              >
+                Category
               </Typography>
             </TouchableOpacity>
           </View>
