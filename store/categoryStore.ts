@@ -46,20 +46,32 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null, successMessage: null });
 
-      // Extract subcategories from data
-      const { ...categoryData } = data;
+      // Map subcategories to DTO format (without id)
+      const subcategories =
+        data.subcategories?.map((sub) => ({
+          name: sub.name,
+          description: sub.description,
+          icon: sub.icon,
+        })) || [];
 
-      // Create the parent category first (API doesn't accept subcategories)
       const { data: category, message } = await categoryService.createCategory({
-        ...categoryData,
-        orderIndex: categoryData.orderIndex || 0,
+        ...data,
+        subcategories,
+        orderIndex: data.orderIndex || 0,
       });
 
-      // Return category with subcategories for UI compatibility
+      // Map children to subcategories for UI
+      const uiSubcategories =
+        category.children?.map((child) => ({
+          id: child.id,
+          name: child.name,
+          description: child.description,
+          icon: child.icon,
+        })) || [];
+
       const categoryWithSubcategories = {
         ...category,
-        // subcategories: createdSubcategories,
-        // children: createdSubcategories,
+        subcategories: uiSubcategories,
       };
 
       set((state) => ({
@@ -85,7 +97,6 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     search?: string;
   }): Promise<void> => {
     try {
-      console.log("getCategories called with filters:", filters);
       set({ isLoading: true, error: null });
 
       const response = await categoryService.getCategories(
@@ -96,17 +107,20 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         0 // offset
       );
 
-      console.log("getCategories response:", {
-        dataLength: response.data?.length,
-        hasMore: response.meta?.hasMore,
-      });
-
-      // Flatten the hierarchical categories for flat display
+      // Flatten the hierarchical categories for flat display and map children to subcategories
       const flattenCategories = (cats: any[]): any[] => {
         if (!Array.isArray(cats)) return [];
         const result: any[] = [];
         for (const cat of cats) {
-          result.push(cat);
+          // Map children to subcategories
+          const subcategories =
+            cat.children?.map((child: any) => ({
+              id: child.id,
+              name: child.name,
+              description: child.description,
+              icon: child.icon,
+            })) || [];
+          result.push({ ...cat, subcategories });
           if (
             cat.children &&
             Array.isArray(cat.children) &&
@@ -120,12 +134,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       };
 
       const flattened = flattenCategories(response.data);
-      console.log(
-        "getCategories setting categories length:",
-        flattened.length,
-        "hasMore:",
-        response.meta?.hasMore ?? false
-      );
+
       set({
         categories: flattened,
         hasMore: response.meta?.hasMore ?? false,
@@ -133,7 +142,6 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       });
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
-      console.log("getCategories error:", errorMessage);
       set({
         error: errorMessage,
         isLoading: false,
@@ -148,13 +156,8 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   }): Promise<void> => {
     try {
       const { categories, hasMore } = get();
-      console.log("loadMoreCategories called:", {
-        hasMore,
-        categoriesLength: categories.length,
-        filters,
-      });
+
       if (!hasMore) {
-        console.log("loadMoreCategories: hasMore is false, returning");
         return;
       }
 
@@ -168,17 +171,20 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         categories.length // offset
       );
 
-      console.log("loadMoreCategories response:", {
-        dataLength: response.data?.length,
-        hasMore: response.meta?.hasMore,
-      });
-
-      // Flatten the hierarchical categories for flat display
+      // Flatten the hierarchical categories for flat display and map children to subcategories
       const flattenCategories = (cats: any[]): any[] => {
         if (!Array.isArray(cats)) return [];
         const result: any[] = [];
         for (const cat of cats) {
-          result.push(cat);
+          // Map children to subcategories
+          const subcategories =
+            cat.children?.map((child: any) => ({
+              id: child.id,
+              name: child.name,
+              description: child.description,
+              icon: child.icon,
+            })) || [];
+          result.push({ ...cat, subcategories });
           if (
             cat.children &&
             Array.isArray(cat.children) &&
@@ -192,19 +198,11 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       };
 
       const newCategories = flattenCategories(response.data);
-      console.log(
-        "loadMoreCategories newCategories length:",
-        newCategories.length
-      );
 
       // Deduplicate by id to prevent infinite looping if API returns duplicates
       const existingIds = new Set(categories.map((cat) => cat.id));
       const uniqueNewCategories = newCategories.filter(
         (cat) => !existingIds.has(cat.id)
-      );
-      console.log(
-        "loadMoreCategories uniqueNewCategories length:",
-        uniqueNewCategories.length
       );
 
       set({
@@ -212,13 +210,8 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
         hasMore: response.meta?.hasMore ?? false,
         isLoadingMore: false,
       });
-      console.log("loadMoreCategories state updated:", {
-        newTotalLength: categories.length + uniqueNewCategories.length,
-        hasMore: response.meta?.hasMore ?? false,
-      });
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
-      console.log("loadMoreCategories error:", errorMessage);
       set({
         error: errorMessage,
         isLoadingMore: false,
@@ -229,13 +222,23 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   getCategoryById: async (id: string): Promise<Category | null> => {
     try {
       set({ isLoading: true, error: null });
-
       const category = await categoryService.getCategoryById(id);
-
       set({ isLoading: false });
+
       return category;
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
+      // If category not found, remove it from local state
+      if (
+        errorMessage.includes("not found") ||
+        errorMessage.includes("Category not found")
+      ) {
+        set((state) => ({
+          categories: state.categories.filter((cat) => cat.id !== id),
+          currentCategory:
+            state.currentCategory?.id === id ? null : state.currentCategory,
+        }));
+      }
       set({
         error: errorMessage,
         isLoading: false,
@@ -251,118 +254,36 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null, successMessage: null });
 
-      // Extract subcategories from data
-      const { subcategories, ...categoryData } = data;
-
-      // Get current category to know existing children
-      const currentCategory = await categoryService.getCategoryById(id);
-      const existingChildren = currentCategory.children || [];
-
-      // Update the parent category
       const { data: updatedCategory, message } =
-        await categoryService.updateCategory(id, categoryData);
+        await categoryService.updateCategory(id, data);
 
-      // Handle subcategories
-      let updatedChildren: Category[] = [...existingChildren];
-      const newSubcategories = subcategories || [];
+      // Map children to subcategories for UI
+      const subcategories =
+        updatedCategory.children?.map((child) => ({
+          id: child.id,
+          name: child.name,
+          description: child.description,
+          icon: child.icon,
+        })) || [];
 
-      // Create a map of existing children by id
-      const existingChildrenMap = new Map(
-        existingChildren.map((c) => [c.id, c])
-      );
-
-      // Determine subcategories to create, update, delete
-      const toCreate: Subcategory[] = [];
-      const toUpdate: { id: string; data: Partial<UpdateCategoryData> }[] = [];
-      const existingIdsInNew = new Set<string>();
-
-      for (const sub of newSubcategories) {
-        if (sub.id && existingChildrenMap.has(sub.id)) {
-          // Update existing
-          existingIdsInNew.add(sub.id);
-          const existing = existingChildrenMap.get(sub.id)!;
-          const updateData: Partial<UpdateCategoryData> = {};
-          if (sub.name !== existing.name) updateData.name = sub.name;
-          if (sub.description !== existing.description)
-            updateData.description = sub.description;
-          if (sub.icon !== existing.icon) updateData.icon = sub.icon;
-          if (Object.keys(updateData).length > 0) {
-            toUpdate.push({ id: sub.id, data: updateData });
-          }
-        } else {
-          // Create new
-          toCreate.push(sub);
-        }
-      }
-
-      // Delete removed subcategories
-      const toDelete = existingChildren.filter(
-        (c) => !existingIdsInNew.has(c.id)
-      );
-
-      // Execute operations
-      let orderIndex = existingChildren.length;
-      for (const sub of toCreate) {
-        try {
-          const { data: createdSub } = await categoryService.createCategory({
-            name: sub.name,
-            description: sub.description,
-            icon: sub.icon || updatedCategory.icon,
-            color: updatedCategory.color,
-            transactionType: updatedCategory.transactionType,
-            parentId: updatedCategory.id,
-            orderIndex,
-          });
-          updatedChildren.push(createdSub);
-          orderIndex++;
-        } catch (error) {
-          console.error("Failed to create subcategory:", sub.name, error);
-        }
-      }
-
-      for (const { id, data } of toUpdate) {
-        try {
-          const { data: updatedSub } = await categoryService.updateCategory(
-            id,
-            data
-          );
-          const index = updatedChildren.findIndex((c) => c.id === id);
-          if (index !== -1) updatedChildren[index] = updatedSub;
-        } catch (error) {
-          console.error("Failed to update subcategory:", id, error);
-        }
-      }
-
-      for (const child of toDelete) {
-        try {
-          await categoryService.deleteCategory(child.id);
-          updatedChildren = updatedChildren.filter((c) => c.id !== child.id);
-        } catch (error) {
-          console.error("Failed to delete subcategory:", child.id, error);
-        }
-      }
-
-      // Update local state
-      const categoryWithChildren = {
+      const categoryWithSubcategories = {
         ...updatedCategory,
-        children: updatedChildren,
-        subcategories: newSubcategories,
+        subcategories,
       };
-      const updatedCategories = get().categories.map((cat) =>
-        cat.id === id ? categoryWithChildren : cat
-      );
 
-      set({
-        categories: updatedCategories,
+      set((state) => ({
+        categories: state.categories.map((cat) =>
+          cat.id === id ? categoryWithSubcategories : cat
+        ),
         currentCategory:
-          get().currentCategory?.id === id
-            ? categoryWithChildren
-            : get().currentCategory,
+          state.currentCategory?.id === id
+            ? categoryWithSubcategories
+            : state.currentCategory,
         isLoading: false,
         successMessage: message,
-      });
+      }));
 
-      return categoryWithChildren;
+      return categoryWithSubcategories;
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
       console.error("Update Category Error:", errorMessage);

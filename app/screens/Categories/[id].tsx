@@ -1,6 +1,7 @@
 import { View, StyleSheet, useColorScheme, ScrollView } from "react-native";
 import React, { useState, useEffect } from "react";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useRouter } from "expo-router";
+import { useRoute } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { Header } from "@/shared/components/ui/Header";
 import { Typography } from "@/shared/components/ui/Typography";
@@ -8,12 +9,16 @@ import { Card } from "@/shared/components/ui/Card";
 import { Button } from "@/shared/components/ui/Button";
 import { ConfirmationModal } from "@/shared/components/ui/ConfirmationModal";
 import { useCategoryStore } from "@/store/categoryStore";
+import { useToastStore } from "@/store/toastStore";
 import { Category } from "@/shared/types/category.types";
 
 const CategoryDetailsScreen = () => {
   const router = useRouter();
-  const { categoryId } = useLocalSearchParams<{ categoryId: string }>();
-  const { getCategoryById, deleteCategory, isLoading } = useCategoryStore();
+  const route = useRoute();
+  const { id } = route.params as { id: string };
+  const { getCategoryById, deleteCategory, isLoading, successMessage } =
+    useCategoryStore();
+  const { showSuccess, showError } = useToastStore();
 
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
@@ -24,14 +29,14 @@ const CategoryDetailsScreen = () => {
 
   useEffect(() => {
     loadCategory();
-  }, [categoryId]);
+  }, [id]);
 
   const loadCategory = async () => {
-    if (!categoryId) return;
+    if (!id) return;
 
     try {
       setLoadingCategory(true);
-      const categoryData = await getCategoryById(categoryId);
+      const categoryData = await getCategoryById(id);
       setCategory(categoryData);
     } catch (error) {
       console.error("Error loading category:", error);
@@ -66,11 +71,13 @@ const CategoryDetailsScreen = () => {
     try {
       await deleteCategory(category.id);
       setShowDeleteModal(false);
+      if (successMessage) {
+        showSuccess(successMessage);
+      }
       router.back();
     } catch (error: any) {
       setShowDeleteModal(false);
-      // Could show a toast or alert here, but since we removed Alert import, maybe use console or add back Alert
-      console.error("Failed to deactivate category:", error);
+      showError(error.message || "Failed to delete category");
     }
   };
 

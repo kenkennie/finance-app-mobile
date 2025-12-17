@@ -98,7 +98,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
         icon: initialData.icon || "💰",
         color: initialData.color || "#1976D2",
         transactionType: initialData.transactionType || "EXPENSE",
-        parentId: initialData.parentId,
+        parentId: initialData.parentId ?? undefined,
         orderIndex: initialData.orderIndex || 0,
         subcategories,
         isActive: initialData.isActive ?? true,
@@ -165,6 +165,31 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
 
             <Controller
               control={control}
+              name="transactionType"
+              render={({
+                field: { onChange, value },
+                fieldState: { error },
+              }) => (
+                <TransactionTypeSelector
+                  value={value}
+                  onChange={onChange}
+                  error={error?.message}
+                />
+              )}
+            />
+          </View>
+
+          {/* Subcategories Section */}
+          <SubcategoryManager
+            subcategories={watchedSubcategories}
+            onSubcategoriesChange={(newSubcategories) =>
+              setValue("subcategories", newSubcategories)
+            }
+          />
+
+          <View style={styles.form}>
+            <Controller
+              control={control}
               name="description"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
@@ -177,21 +202,6 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
                   onBlur={onBlur}
                   error={errors.description?.message}
                   isDark={isDark}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="transactionType"
-              render={({
-                field: { onChange, value },
-                fieldState: { error },
-              }) => (
-                <TransactionTypeSelector
-                  value={value}
-                  onChange={onChange}
-                  error={error?.message}
                 />
               )}
             />
@@ -224,14 +234,6 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
               />
             </Card>
           </View>
-
-          {/* Subcategories Section */}
-          <SubcategoryManager
-            subcategories={watchedSubcategories}
-            onSubcategoriesChange={(newSubcategories) =>
-              setValue("subcategories", newSubcategories)
-            }
-          />
         </ScrollView>
 
         <View style={[styles.footer, isDark && styles.footerDark]}>
@@ -324,6 +326,28 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
 
           <Controller
             control={control}
+            name="transactionType"
+            render={({ field: { onChange, value }, fieldState: { error } }) => (
+              <TransactionTypeSelector
+                value={value}
+                onChange={onChange}
+                error={error?.message}
+              />
+            )}
+          />
+        </View>
+
+        {/* Subcategories Section */}
+        <SubcategoryManager
+          subcategories={watchedSubcategories}
+          onSubcategoriesChange={(newSubcategories) =>
+            setValue("subcategories", newSubcategories)
+          }
+        />
+
+        <View style={styles.form}>
+          <Controller
+            control={control}
             name="description"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
@@ -336,18 +360,6 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
                 onBlur={onBlur}
                 error={errors.description?.message}
                 isDark={isDark}
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name="transactionType"
-            render={({ field: { onChange, value }, fieldState: { error } }) => (
-              <TransactionTypeSelector
-                value={value}
-                onChange={onChange}
-                error={error?.message}
               />
             )}
           />
@@ -380,41 +392,15 @@ const CategoryForm: React.FC<CategoryFormProps> = ({
             />
           </Card>
         </View>
-
-        {/* Settings Section */}
-        <View style={styles.section}>
-          <Typography
-            style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
-          >
-            Settings
-          </Typography>
-          <Card isDark={isDark}>
-            <Controller
-              control={control}
-              name="isActive"
-              render={({ field: { onChange, value } }) => (
-                <SettingRow
-                  label="Category is active"
-                  value={value ?? true}
-                  onValueChange={onChange}
-                />
-              )}
-            />
-          </Card>
-        </View>
-
-        {/* Subcategories Section */}
-        <SubcategoryManager
-          subcategories={watchedSubcategories}
-          onSubcategoriesChange={(newSubcategories) =>
-            setValue("subcategories", newSubcategories)
-          }
-        />
       </ScrollView>
 
       <View style={[styles.footer, isDark && styles.footerDark]}>
         <Button
-          onPress={handleSubmit(handleFormSubmit)}
+          onPress={() => {
+            handleSubmit((data) => {
+              handleFormSubmit(data);
+            })();
+          }}
           loading={isLoading}
           disabled={isLoading}
           fullWidth

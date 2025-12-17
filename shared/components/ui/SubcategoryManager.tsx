@@ -6,6 +6,7 @@ import { Card } from "./Card";
 import { Input } from "./Input";
 import { Button } from "./Button";
 import { Typography } from "./Typography";
+import { ConfirmationModal } from "./ConfirmationModal";
 import { Subcategory } from "@/shared/types/category.types";
 
 interface SubcategoryManagerProps {
@@ -24,6 +25,13 @@ const SubcategoryManager: React.FC<SubcategoryManagerProps> = ({
   const [newSubcategoryName, setNewSubcategoryName] = useState("");
   const [newSubcategoryDescription, setNewSubcategoryDescription] =
     useState("");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [subcategoryToDelete, setSubcategoryToDelete] = useState<number | null>(
+    null
+  );
 
   const handleAddSubcategory = () => {
     if (!newSubcategoryName.trim()) {
@@ -53,23 +61,58 @@ const SubcategoryManager: React.FC<SubcategoryManagerProps> = ({
   };
 
   const handleRemoveSubcategory = (index: number) => {
-    Alert.alert(
-      "Remove Subcategory",
-      "Are you sure you want to remove this subcategory?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            const updatedSubcategories = subcategories.filter(
-              (_, i) => i !== index
-            );
-            onSubcategoriesChange(updatedSubcategories);
-          },
-        },
-      ]
+    setSubcategoryToDelete(index);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (subcategoryToDelete !== null) {
+      const updatedSubcategories = subcategories.filter(
+        (_, i) => i !== subcategoryToDelete
+      );
+      onSubcategoriesChange(updatedSubcategories);
+    }
+    setShowDeleteModal(false);
+    setSubcategoryToDelete(null);
+  };
+
+  const handleCancelDelete = () => {
+    setShowDeleteModal(false);
+    setSubcategoryToDelete(null);
+  };
+
+  const handleStartEdit = (index: number) => {
+    const subcategory = subcategories[index];
+    setEditingIndex(index);
+    setEditName(subcategory.name);
+    setEditDescription(subcategory.description || "");
+  };
+
+  const handleSaveEdit = () => {
+    if (!editName.trim()) {
+      Alert.alert("Error", "Subcategory name is required");
+      return;
+    }
+
+    const updatedSubcategories = subcategories.map((sub, i) =>
+      i === editingIndex
+        ? {
+            ...sub,
+            name: editName.trim(),
+            description: editDescription.trim() || undefined,
+          }
+        : sub
     );
+    onSubcategoriesChange(updatedSubcategories);
+    setEditingIndex(null);
+    setEditName("");
+    setEditDescription("");
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setEditName("");
+    setEditDescription("");
   };
 
   const handleEditSubcategory = (
@@ -163,38 +206,106 @@ const SubcategoryManager: React.FC<SubcategoryManagerProps> = ({
                       color="#6B7280"
                     />
                   </View>
-                  <View style={styles.subcategoryInfo}>
-                    <Typography
-                      style={[
-                        styles.subcategoryName,
-                        isDark && styles.subcategoryNameDark,
-                      ]}
-                    >
-                      {subcategory.name}
-                    </Typography>
-                    {subcategory.description && (
+                  {editingIndex === index ? (
+                    <View style={styles.editForm}>
+                      <Input
+                        placeholder="Subcategory name"
+                        value={editName}
+                        onChangeText={setEditName}
+                        maxLength={100}
+                      />
+                      <Input
+                        placeholder="Description (optional)"
+                        value={editDescription}
+                        onChangeText={setEditDescription}
+                        maxLength={200}
+                      />
+                    </View>
+                  ) : (
+                    <View style={styles.subcategoryInfo}>
                       <Typography
                         style={[
-                          styles.subcategoryDescription,
-                          isDark && styles.subcategoryDescriptionDark,
+                          styles.subcategoryName,
+                          isDark && styles.subcategoryNameDark,
                         ]}
                       >
-                        {subcategory.description}
+                        {subcategory.name}
                       </Typography>
-                    )}
-                  </View>
+                      {subcategory.description && (
+                        <Typography
+                          style={[
+                            styles.subcategoryDescription,
+                            isDark && styles.subcategoryDescriptionDark,
+                          ]}
+                        >
+                          {subcategory.description}
+                        </Typography>
+                      )}
+                    </View>
+                  )}
                 </View>
               </View>
-              <TouchableOpacity
-                style={[styles.removeButton, isDark && styles.removeButtonDark]}
-                onPress={() => handleRemoveSubcategory(index)}
-              >
-                <Feather
-                  name="trash-2"
-                  size={16}
-                  color="#EF4444"
-                />
-              </TouchableOpacity>
+              <View style={styles.actionButtons}>
+                {editingIndex === index ? (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.saveButton,
+                        isDark && styles.saveButtonDark,
+                      ]}
+                      onPress={handleSaveEdit}
+                    >
+                      <Feather
+                        name="check"
+                        size={16}
+                        color="#10B981"
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.cancelEditButton,
+                        isDark && styles.cancelEditButtonDark,
+                      ]}
+                      onPress={handleCancelEdit}
+                    >
+                      <Feather
+                        name="x"
+                        size={16}
+                        color="#6B7280"
+                      />
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TouchableOpacity
+                      style={[
+                        styles.editButton,
+                        isDark && styles.editButtonDark,
+                      ]}
+                      onPress={() => handleStartEdit(index)}
+                    >
+                      <Feather
+                        name="edit-2"
+                        size={16}
+                        color="#3B82F6"
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.removeButton,
+                        isDark && styles.removeButtonDark,
+                      ]}
+                      onPress={() => handleRemoveSubcategory(index)}
+                    >
+                      <Feather
+                        name="trash-2"
+                        size={16}
+                        color="#EF4444"
+                      />
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
             </View>
           ))}
         </Card>
@@ -213,6 +324,18 @@ const SubcategoryManager: React.FC<SubcategoryManagerProps> = ({
           </Typography>
         </Card>
       )}
+
+      <ConfirmationModal
+        visible={showDeleteModal}
+        title="Remove Subcategory"
+        message="Are you sure you want to remove this subcategory?"
+        confirmText="Remove"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isDark={isDark}
+        destructive={true}
+      />
     </View>
   );
 };
@@ -331,6 +454,47 @@ const styles = StyleSheet.create({
   },
   emptyTextDark: {
     color: "#9CA3AF",
+  },
+  editForm: {
+    flex: 1,
+    gap: 8,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editButtonDark: {
+    backgroundColor: "#1E3A8A",
+  },
+  saveButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#ECFDF5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveButtonDark: {
+    backgroundColor: "#064E3B",
+  },
+  cancelEditButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F9FAFB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelEditButtonDark: {
+    backgroundColor: "#374151",
   },
 });
 

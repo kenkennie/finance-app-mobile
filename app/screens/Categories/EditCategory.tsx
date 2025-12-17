@@ -50,6 +50,7 @@ const EditCategoryScreen = ({}) => {
   };
 
   const onSubmit = async (data: UpdateCategoryDto) => {
+    console.log("EditCategory onSubmit called with data:", data);
     if (!categoryId) {
       return;
     }
@@ -59,9 +60,7 @@ const EditCategoryScreen = ({}) => {
       setCategory(updatedCategory);
       showSuccess(successMessage || "Category updated successfully!");
       setTimeout(() => {
-        router.replace(
-          `/screens/Categories/CategoryDetails?categoryId=${categoryId}` as any
-        );
+        router.replace(`/screens/Categories/${categoryId}` as any);
       }, 100);
     } catch (error: any) {
       console.error("Update failed:", error);

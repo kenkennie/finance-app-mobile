@@ -1,19 +1,14 @@
 import { Category } from "@/shared/types/category.types";
 import { ApiSuccessResponse } from "@/shared/types/auth.types";
 import { apiClient } from "@/config/api.config";
-import {
-  extractResponseData,
-  handleApiResponse,
-} from "@/shared/utils/api/responseHandler";
+import { handleApiResponse } from "@/shared/utils/api/responseHandler";
 import {
   CreateCategoryDto,
   UpdateCategoryDto,
 } from "@/schemas/category.schema";
 
 export const categoryService = {
-  async createCategory(
-    categoryData: Omit<CreateCategoryDto, "subcategories">
-  ): Promise<{
+  async createCategory(categoryData: CreateCategoryDto): Promise<{
     data: Category;
     message: string;
   }> {
@@ -51,21 +46,43 @@ export const categoryService = {
     const queryString = params.toString();
     const url = queryString ? `/categories?${queryString}` : "/categories";
 
-    const response = await apiClient.get<{ data: Category[]; meta: any }>(url);
+    const response = await apiClient.get<{
+      success: boolean;
+      message: string;
+      data: {
+        data: Category[];
+        meta: {
+          total: number;
+          page: number;
+          limit: number;
+          totalPages: number;
+        };
+      };
+    }>(url);
 
-    return response.data.data;
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message || "Failed to fetch categories");
+    }
+
+    return result.data;
   },
 
   async getCategoryById(id: string): Promise<Category> {
     const response = await apiClient.get<ApiSuccessResponse<Category>>(
       `/categories/${id}`
     );
-    return extractResponseData(response);
+
+    const result = handleApiResponse(response);
+    if (!result.success || !result.data) {
+      throw new Error(result.message || "Failed to fetch category");
+    }
+    return result.data;
   },
 
   async updateCategory(
     id: string,
-    categoryData: Omit<UpdateCategoryDto, "subcategories">
+    categoryData: UpdateCategoryDto
   ): Promise<{
     data: Category;
     message: string;

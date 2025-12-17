@@ -3,6 +3,7 @@ import Constants from "expo-constants";
 const ENV = {
   dev: {
     apiUrl: "http://192.168.0.100:3000/api/v1",
+    // apiUrl: "https://expenseflow.kennivate.co.ke/api/v1",
   },
   staging: {
     apiUrl: "https://staging-api.yourapp.com/api",
