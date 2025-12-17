@@ -1,148 +1,96 @@
 import React from "react";
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from "react-native";
+import { View, Text, Image, StyleSheet, Dimensions } from "react-native";
+import AppIntroSlider from "react-native-app-intro-slider";
 import { useRouter } from "expo-router";
-import { Button } from "@/shared/components/ui/Button";
-import { colors } from "@/theme/colors";
-import { borderRadius, fontSize, spacing } from "@/theme/spacing";
+
+const { width, height } = Dimensions.get("window");
+
+const slides = [
+  {
+    key: "1",
+    title: "Welcome to ExpenseFlow",
+    text: "Take control of your finances with intelligent expense tracking and beautiful insights.",
+    image: require("../../assets/images/icon.png"),
+    backgroundColor: "#59b2ab",
+  },
+  {
+    key: "2",
+    title: "Smart Expense Tracking",
+    text: "Track every penny with intelligent categorization and powerful budgeting tools.",
+    image: require("../../assets/images/icon.png"),
+    backgroundColor: "#febe29",
+  },
+  {
+    key: "3",
+    title: "Visual Analytics",
+    text: "Beautiful charts and reports to understand your spending patterns.",
+    image: require("../../assets/images/icon.png"),
+    backgroundColor: "#22bcb5",
+  },
+  {
+    key: "4",
+    title: "Get Started",
+    text: "Join thousands of users who have taken control of their finances.",
+    image: require("../../assets/images/icon.png"),
+    backgroundColor: "#59b2ab",
+  },
+];
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
-  const features = [
-    {
-      icon: "📊",
-      title: "Track Expenses",
-      description: "Monitor your spending",
-    },
-    { icon: "🎯", title: "Set Budgets", description: "Stay on track" },
-    { icon: "💵", title: "Manage Income", description: "Track your earnings" },
-    { icon: "💼", title: "Track Projects", description: "Organize your work" },
-  ];
+  const renderSlide = ({ item }: any) => {
+    return (
+      <View style={[styles.slide, { backgroundColor: item.backgroundColor }]}>
+        <Image
+          source={item.image}
+          style={styles.image}
+        />
+        <Text style={styles.title}>{item.title}</Text>
+        <Text style={styles.text}>{item.text}</Text>
+      </View>
+    );
+  };
+
+  const onDone = () => {
+    // Navigate to login screen after onboarding
+    router.push("/(auth)/login");
+  };
 
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.logo}>💰</Text>
-          </View>
-          <Text style={styles.title}>ExpenseFlow</Text>
-          <Text style={styles.subtitle}>
-            Manage your finances with ease. Track expenses, income, budgets, and
-            more.
-          </Text>
-        </View>
-
-        <View style={styles.featuresContainer}>
-          <View style={styles.featureGrid}>
-            {features.map((feature, index) => (
-              <View
-                key={index}
-                style={styles.featureCard}
-              >
-                <Text style={styles.featureIcon}>{feature.icon}</Text>
-                <Text style={styles.featureTitle}>{feature.title}</Text>
-                <Text style={styles.featureDescription}>
-                  {feature.description}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <Button
-            onPress={() => router.push("/(auth)/login" as any)}
-            fullWidth
-          >
-            Get Started
-          </Button>
-        </View>
-      </ScrollView>
-    </View>
+    <AppIntroSlider
+      data={slides}
+      renderItem={renderSlide}
+      onDone={onDone}
+      showSkipButton={true}
+      onSkip={onDone}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  slide: {
     flex: 1,
-    backgroundColor: colors.primary,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: 80, // Increased from spacing.xl (32) to 80 for status bar
-    paddingBottom: spacing.xl,
-  },
-  header: {
     alignItems: "center",
-    marginBottom: spacing.xxl,
-  },
-  logoContainer: {
-    width: 100,
-    height: 100,
-    backgroundColor: colors.background,
-    borderRadius: 50,
     justifyContent: "center",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    paddingHorizontal: 20,
   },
-  logo: {
-    fontSize: 48,
+  image: {
+    width: 200,
+    height: 200,
+    marginBottom: 50,
   },
   title: {
-    fontSize: fontSize.xxxl,
+    fontSize: 24,
     fontWeight: "bold",
-    color: colors.background,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    fontSize: fontSize.md,
-    color: colors.background,
+    color: "white",
     textAlign: "center",
-    opacity: 0.9,
+    marginBottom: 20,
+  },
+  text: {
+    fontSize: 16,
+    color: "white",
+    textAlign: "center",
     lineHeight: 24,
-  },
-  featuresContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  featureGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  featureCard: {
-    width: "48%",
-    backgroundColor: "rgba(255, 255, 255, 0.15)",
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    alignItems: "center",
-  },
-  featureIcon: {
-    fontSize: 32,
-    marginBottom: spacing.sm,
-  },
-  featureTitle: {
-    fontSize: fontSize.md,
-    fontWeight: "600",
-    color: colors.background,
-    marginBottom: spacing.xs,
-    textAlign: "center",
-  },
-  featureDescription: {
-    fontSize: fontSize.sm,
-    color: colors.background,
-    opacity: 0.8,
-    textAlign: "center",
-  },
-  buttonContainer: {
-    marginTop: spacing.xl,
   },
 });
