@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { DeviceEventEmitter } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import ENV from "./env";
 
@@ -175,9 +176,8 @@ apiClient.interceptors.response.use(
           await SecureStore.deleteItemAsync("refresh_token");
           await SecureStore.deleteItemAsync("user");
 
-          // ✅ Trigger logout in Zustand store
-          // Import and call logout action if needed
-          // useAuthStore.getState().logout(); // Can't use hooks here
+          // ✅ Trigger logout in Zustand store via event
+          DeviceEventEmitter.emit("tokenRefreshFailed");
 
           return Promise.reject(refreshError);
         }

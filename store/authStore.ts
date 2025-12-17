@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DeviceEventEmitter } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { authService } from "@/shared/services/auth/authService";
 import { extractErrorMessage } from "@/shared/utils/api/responseHandler";
@@ -38,7 +39,7 @@ interface AuthState {
   clearSuccess: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
+const authStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
@@ -320,3 +321,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clearError: () => set({ error: null }),
   clearSuccess: () => set({ successMessage: null }),
 }));
+
+export const useAuthStore = authStore;
+
+// Listen for token refresh failure events and trigger logout
+DeviceEventEmitter.addListener("tokenRefreshFailed", () => {
+  console.log("🔄 Token refresh failed - triggering logout");
+  authStore.getState().logout();
+});
