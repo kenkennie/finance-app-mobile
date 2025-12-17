@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Image, StyleSheet, Dimensions } from "react-native";
 import AppIntroSlider from "react-native-app-intro-slider";
 import { useRouter } from "expo-router";
+import { colors } from "@/theme/colors";
 
 const { width, height } = Dimensions.get("window");
 
@@ -11,28 +12,28 @@ const slides = [
     title: "Welcome to ExpenseFlow",
     text: "Take control of your finances with intelligent expense tracking and beautiful insights.",
     image: require("../../assets/images/icon.png"),
-    backgroundColor: "#59b2ab",
+    backgroundColor: colors.primary,
   },
   {
     key: "2",
     title: "Smart Expense Tracking",
     text: "Track every penny with intelligent categorization and powerful budgeting tools.",
     image: require("../../assets/images/icon.png"),
-    backgroundColor: "#febe29",
+    backgroundColor: colors.primary,
   },
   {
     key: "3",
     title: "Visual Analytics",
     text: "Beautiful charts and reports to understand your spending patterns.",
     image: require("../../assets/images/icon.png"),
-    backgroundColor: "#22bcb5",
+    backgroundColor: colors.primary,
   },
   {
     key: "4",
     title: "Get Started",
     text: "Join thousands of users who have taken control of their finances.",
     image: require("../../assets/images/icon.png"),
-    backgroundColor: "#59b2ab",
+    backgroundColor: colors.primary,
   },
 ];
 
