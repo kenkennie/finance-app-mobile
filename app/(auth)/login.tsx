@@ -71,7 +71,7 @@ export default function LoginScreen() {
           const onboardingStatus = await checkOnboardingStatus();
 
           if (onboardingStatus.needsOnboarding) {
-            router.replace("/onboarding/welcome");
+            router.replace("/onboarding/setup-accounts");
           } else {
             router.replace("/(tabs)");
           }
@@ -96,7 +96,7 @@ export default function LoginScreen() {
           const onboardingStatus = await checkOnboardingStatus();
 
           if (onboardingStatus.needsOnboarding) {
-            router.replace("/onboarding/welcome");
+            router.replace("/onboarding/setup-accounts");
           } else {
             router.replace("/(tabs)");
           }

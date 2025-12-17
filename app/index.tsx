@@ -97,7 +97,7 @@ export default function Index() {
       onboardingStatus?.needsOnboarding &&
       !inOnboardingGroup
     ) {
-      setTimeout(() => router.replace("/onboarding/welcome"), 0);
+      setTimeout(() => router.replace("/onboarding/setup-accounts"), 0);
     } else if (
       isAuthenticated &&
       !onboardingStatus?.needsOnboarding &&
@@ -131,7 +131,7 @@ export default function Index() {
   // Default redirect based on auth state and onboarding status
   if (isAuthenticated) {
     if (onboardingStatus?.needsOnboarding) {
-      return <Redirect href="/onboarding/welcome" />;
+      return <Redirect href="/onboarding/setup-accounts" />;
     }
     return <Redirect href="/(tabs)" />;
   }
