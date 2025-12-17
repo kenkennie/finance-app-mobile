@@ -25,7 +25,7 @@ interface BudgetStore extends BudgetStoreState {
   getBudgetById: (id: string) => Promise<Budget | null>;
   getBudgetIncludingStatistics: (
     id: string
-  ) => Promise<(Budget & { budgetDetails: BudgetDetails }) | null>;
+  ) => Promise<(Budget & { stats: BudgetDetails }) | null>;
   updateBudget: (id: string, data: UpdateBudgetData) => Promise<Budget>;
   deleteBudget: (id: string) => Promise<void>;
   getBudgetStatistics: (id: string) => Promise<BudgetDetails | null>;
@@ -265,7 +265,7 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
 
   getBudgetIncludingStatistics: async (
     id: string
-  ): Promise<(Budget & { budgetDetails: BudgetDetails }) | null> => {
+  ): Promise<(Budget & { stats: BudgetDetails }) | null> => {
     try {
       set({ isLoading: true, error: null });
 
@@ -278,7 +278,10 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
       }
 
       set({ isLoading: false });
-      return budgetWithDetails;
+      return {
+        ...budgetWithDetails,
+        stats: budgetWithDetails.budgetDetails,
+      };
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);
       console.error("Error getting budget with stats:", errorMessage);
