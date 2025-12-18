@@ -60,7 +60,7 @@ const QuickAddAccountModal: React.FC<QuickAddAccountModalProps> = ({
         color: "#1976D2",
         openingBalance: balance,
         balance: balance,
-        currency: "USD",
+        currency: "KSh",
         isSystemAccount: false,
       });
 
