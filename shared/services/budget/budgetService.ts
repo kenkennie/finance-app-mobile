@@ -148,11 +148,9 @@ export const budgetService = {
     return response.data.data;
   },
 
-  async getBudgetById(
-    id: string
-  ): Promise<Budget & { budgetDetails: BudgetDetails }> {
+  async getBudgetById(id: string): Promise<Budget & { stats: BudgetDetails }> {
     const response = await apiClient.get<
-      ApiSuccessResponse<Budget & { budgetDetails: BudgetDetails }>
+      ApiSuccessResponse<Budget & { stats: BudgetDetails }>
     >(`/budgets/${id}`);
 
     return extractResponseData(response);

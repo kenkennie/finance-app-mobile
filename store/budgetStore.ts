@@ -280,7 +280,7 @@ export const useBudgetStore = create<BudgetStore>((set, get) => ({
       set({ isLoading: false });
       return {
         ...budgetWithDetails,
-        stats: budgetWithDetails.budgetDetails,
+        stats: budgetWithDetails.stats,
       };
     } catch (error: any) {
       const errorMessage = extractErrorMessage(error);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,12 @@ import {
   StyleSheet,
   Dimensions,
   ScrollView,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useTheme } from "@/theme/context/ThemeContext";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
@@ -59,6 +63,13 @@ const AVAILABLE_ICONS = [
   { name: "inbox", label: "Inbox" },
   { name: "send", label: "Send" },
   { name: "mail", label: "Mail" },
+  { name: "graduation-cap", label: "Graduation" },
+  { name: "land", label: "Landmark" },
+  { name: "bank", label: "Bank" },
+  { name: "hand", label: "Hand" },
+  { name: "plane", label: "Plane" },
+  { name: "wallet", label: "Wallet" },
+  { name: "store", label: "Store" },
 ] as const;
 
 const IconPicker: React.FC<IconPickerProps> = ({
@@ -68,8 +79,14 @@ const IconPicker: React.FC<IconPickerProps> = ({
   onIconSelect,
   onClose,
 }) => {
-  // Simple theme detection - you can replace this with your actual theme logic
-  const isDark = false; // or use your theme context if available
+  const { isDark } = useTheme();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredIcons = AVAILABLE_ICONS.filter(
+    (icon) =>
+      icon.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      icon.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleIconSelect = (icon: string) => {
     onIconSelect(icon);
@@ -88,7 +105,10 @@ const IconPicker: React.FC<IconPickerProps> = ({
         activeOpacity={1}
         onPress={onClose}
       >
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView
+          style={styles.modalContainer}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
           <TouchableOpacity
             activeOpacity={1}
             style={[styles.modalContent, isDark && styles.modalContentDark]}
@@ -113,13 +133,37 @@ const IconPicker: React.FC<IconPickerProps> = ({
               </TouchableOpacity>
             </View>
 
+            {/* Search Input */}
+            <View style={styles.searchContainer}>
+              <View
+                style={[
+                  styles.searchInputWrapper,
+                  isDark && styles.searchInputWrapperDark,
+                ]}
+              >
+                <Feather
+                  name="search"
+                  size={20}
+                  color={isDark ? "#9CA3AF" : "#6B7280"}
+                  style={styles.searchIcon}
+                />
+                <TextInput
+                  style={[styles.searchInput, isDark && styles.searchInputDark]}
+                  placeholder="Search icons..."
+                  placeholderTextColor={isDark ? "#9CA3AF" : "#6B7280"}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                />
+              </View>
+            </View>
+
             {/* Icon Grid */}
             <ScrollView
               style={styles.scrollView}
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.iconGrid}>
-                {AVAILABLE_ICONS.map((icon) => (
+                {filteredIcons.map((icon) => (
                   <TouchableOpacity
                     key={icon.name}
                     style={styles.iconItemWrapper}
@@ -159,7 +203,7 @@ const IconPicker: React.FC<IconPickerProps> = ({
               </View>
             </ScrollView>
           </TouchableOpacity>
-        </View>
+        </KeyboardAvoidingView>
       </TouchableOpacity>
     </Modal>
   );
@@ -211,6 +255,36 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 4,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  searchInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#D1D5DB",
+    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+  },
+  searchInputWrapperDark: {
+    backgroundColor: "#374151",
+    borderColor: "#4B5563",
+  },
+  searchIcon: {
+    marginLeft: 12,
+  },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 8,
+    fontSize: 16,
+    backgroundColor: "transparent",
+  },
+  searchInputDark: {
+    color: "#FFF",
   },
   scrollView: {
     flex: 1,

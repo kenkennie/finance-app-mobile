@@ -174,6 +174,7 @@ const Budgets = () => {
         totalAllocated={totalAllocated}
         totalRemaining={totalRemaining}
         overallPercentageUsed={overallPercentageUsed}
+        currency={budget.currency}
         categoryStats={categoryStats}
         formattedEndDate={budget.formattedEndDate}
         formattedStartDate={budget.formattedStartDate}

@@ -5,6 +5,7 @@ import { Card } from "@/shared/components/ui/Card";
 import { Badge } from "@/shared/components/ui/Badge";
 import { Budget } from "@/shared/types/budget.types";
 import { colors } from "@/theme/colors";
+import { formatNumber } from "@/shared/utils/formatUtils";
 
 interface BudgetCardProps {
   budget: Budget;
@@ -37,6 +38,7 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
   totalAllocated = 0,
   totalRemaining = 0,
   overallPercentageUsed = 0,
+  currency,
 }) => {
   const getProgressBarColor = () => {
     if (overallPercentageUsed > 100) return colors.error;
@@ -82,7 +84,7 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
             Allocated
           </Text>
           <Text style={[styles.statValue, isDark && styles.statValueDark]}>
-            {totalAllocated}
+            {currency} {formatNumber(totalAllocated || 0, 2)}
           </Text>
         </View>
 
@@ -91,13 +93,13 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
             Spent
           </Text>
           <Text style={[styles.statValue, isDark && styles.statValueDark]}>
-            {spentAmount}
+            {currency} {formatNumber(spentAmount || 0, 2)}
           </Text>
         </View>
 
         <View style={styles.statItem}>
           <Text style={[styles.statLabel, isDark && styles.statLabelDark]}>
-            Remaining
+            {(totalRemaining || 0) >= 0 ? "Remaining" : "Over Budget"}
           </Text>
           <Text
             style={[
@@ -106,7 +108,7 @@ const BudgetCard: React.FC<BudgetCardProps> = ({
               isDark && styles.statValueDark,
             ]}
           >
-            {totalRemaining}
+            {currency} {formatNumber(Math.abs(totalRemaining || 0), 2)}
           </Text>
         </View>
       </View>

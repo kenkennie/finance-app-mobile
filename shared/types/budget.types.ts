@@ -90,8 +90,12 @@ export interface CategoryBudgetStats {
   allocatedAmount: number;
   spentAmount: number;
   remainingAmount: number;
+  formattedAllocatedAmount: string;
+  formattedSpentAmount: string;
+  formattedRemainingAmount: string;
   percentageUsed: number;
   isOverBudget: boolean;
+  spendingStatus: "under" | "exact" | "over";
 }
 
 export interface BudgetDetails {
@@ -103,8 +107,12 @@ export interface BudgetDetails {
   totalAllocated: number;
   totalSpent: number;
   totalRemaining: number;
+  formattedTotalAllocated: string;
+  formattedTotalSpent: string;
+  formattedTotalRemaining: string;
   overallPercentageUsed: number;
   isOverBudget: boolean;
+  spendingStatus: "under" | "exact" | "over";
   categoryStats: CategoryBudgetStats[];
 }
 

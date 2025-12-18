@@ -376,8 +376,8 @@ export default function BudgetDetailsScreen() {
     setActionModalVisible(true);
   };
 
-  const totalAllocated = stats.totalAllocated;
-  const totalSpent = stats.totalSpent;
+  const totalAllocated = stats.formattedTotalAllocated;
+  const totalSpent = stats.formattedTotalSpent;
   // const utilizationPercentage = stats.overallPercentageUsed;
 
   return (
@@ -466,7 +466,11 @@ export default function BudgetDetailsScreen() {
                 variant="caption"
                 style={[styles.statLabel, isDark ? styles.statLabelDark : {}]}
               >
-                Remaining
+                {stats.spendingStatus === "under"
+                  ? "Remaining"
+                  : stats.spendingStatus === "exact"
+                  ? "Status"
+                  : "Over Budget"}
               </Typography>
               <Typography
                 variant="h2"
@@ -475,12 +479,19 @@ export default function BudgetDetailsScreen() {
                   isDark ? styles.statValueDark : {},
                   {
                     color:
-                      stats.totalRemaining >= 0 ? colors.success : colors.error,
+                      stats.spendingStatus === "under"
+                        ? colors.success
+                        : stats.spendingStatus === "exact"
+                        ? colors.primary
+                        : colors.error,
                   },
                 ]}
               >
-                {budget.currency}
-                {stats.totalRemaining}
+                {stats.spendingStatus === "under"
+                  ? `${budget.currency}${stats.formattedTotalRemaining}`
+                  : stats.spendingStatus === "exact"
+                  ? "On Budget"
+                  : `${budget.currency}${stats.formattedTotalRemaining}`}
               </Typography>
             </View>
 
@@ -630,19 +641,36 @@ export default function BudgetDetailsScreen() {
                           isDark ? styles.categoryDescriptionDark : {},
                         ]}
                       >
-                        {stats?.currency} {categoryStat.spentAmount} of{" "}
+                        {stats?.currency} {categoryStat.formattedSpentAmount} of{" "}
                         {stats?.currency}
-                        {categoryStat.allocatedAmount}
+                        {categoryStat.formattedAllocatedAmount}
+                        {categoryStat.spendingStatus === "under" && (
+                          <Typography style={styles.remainingText}>
+                            • Remaining: {stats?.currency}
+                            {categoryStat.formattedRemainingAmount}
+                          </Typography>
+                        )}
+                        {categoryStat.spendingStatus === "exact" && (
+                          <Typography style={styles.exactText}>
+                            • On Budget
+                          </Typography>
+                        )}
+                        {categoryStat.spendingStatus === "over" && (
+                          <Typography style={styles.overText}>
+                            • Over by: {stats?.currency}
+                            {categoryStat.formattedRemainingAmount}
+                          </Typography>
+                        )}
                       </Typography>
                     </View>
                   </View>
                   <View style={styles.categoryRight}>
                     <Badge
                       variant={
-                        categoryStat.isOverBudget
+                        categoryStat.spendingStatus === "over"
                           ? "error"
-                          : categoryStat.percentageUsed >= 80
-                          ? "warning"
+                          : categoryStat.spendingStatus === "exact"
+                          ? "primary"
                           : "success"
                       }
                       size="small"
@@ -1283,5 +1311,17 @@ const styles = StyleSheet.create({
   },
   emptyStateTextDark: {
     color: "#9CA3AF",
+  },
+  remainingText: {
+    color: colors.success,
+    fontWeight: "500",
+  },
+  exactText: {
+    color: colors.primary,
+    fontWeight: "500",
+  },
+  overText: {
+    color: colors.error,
+    fontWeight: "500",
   },
 });
