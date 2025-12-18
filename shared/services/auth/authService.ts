@@ -77,14 +77,18 @@ export const authService = {
     message: string;
   }> {
     try {
+      console.log("🔍 Starting Google OAuth login");
       // Configure Google OAuth request with expo-auth-session
       // Use backend callback URL for OAuth redirect
-      const backendUrl = env.apiUrl.replace("/api/v1", ""); // Remove /api/v1 to get base URL
-      const redirectUri = `${backendUrl}/auth/google/callback`;
+      const backendUrl = env.apiUrl.replace(/\/api\/v1\/?$/, ""); // Remove /api/v1 to get base URL
+      const redirectUri = `${backendUrl}/api/v1/auth/google/callback`;
+
+      console.log("🔍 Backend URL:", backendUrl);
+      console.log("🔍 Redirect URI:", redirectUri);
 
       const request = new AuthSession.AuthRequest({
-        clientId:
-          Constants.expoConfig?.extra?.GOOGLE_CLIENT_ID || "your-web-client-id",
+        clientId: Constants.expoConfig?.extra?.GOOGLE_CLIENT_ID,
+        clientSecret: Constants.expoConfig?.extra?.GOOGLE_CLIENT_SECRET,
         scopes: ["openid", "profile", "email"],
         responseType: AuthSession.ResponseType.Token,
         redirectUri,
@@ -94,12 +98,26 @@ export const authService = {
         },
       });
 
+      console.log("====================================");
+      console.log("🔍 AuthRequest config:", request);
+      console.log("====================================");
+
       // This will open a native popup/modal for account selection
+      console.log("🔍 Prompting for Google auth...");
       const result = await request.promptAsync({
         authorizationEndpoint: "https://accounts.google.com/oauth/v2/auth",
       });
 
+      console.log("🔍 Auth result type:", result.type);
+      if (result.type === "success") {
+        console.log(
+          "🔍 Auth result params keys:",
+          Object.keys(result.params || {})
+        );
+      }
+
       if (result.type === "success" && result.params.id_token) {
+        console.log("✅ Got ID token, sending to backend for verification");
         // Send the Google ID token to our backend for verification
         const response = await apiClient.post<
           ApiSuccessResponse<AuthResponseData>
@@ -118,24 +136,28 @@ export const authService = {
 
         const apiResult = handleApiResponse(response);
         if (!apiResult.success || !apiResult.data) {
+          console.error("❌ Backend verification failed:", apiResult.message);
           throw new Error(apiResult.message);
         }
 
         const { data } = apiResult;
 
         if (!data.access_token || !data.refresh_token || !data.user) {
+          console.error("❌ Invalid response data from backend");
           throw new Error(data.message || "Google login failed");
         }
 
+        console.log("✅ Google login successful");
         return {
           data,
           message: apiResult.message,
         };
       } else {
+        console.log("❌ Auth cancelled or failed, result:", result);
         throw new Error("Google authentication was cancelled");
       }
     } catch (error: any) {
-      console.error("Google OAuth error:", error);
+      console.error("❌ Google OAuth error:", error);
       throw new Error(error.message || "Google login failed");
     }
   },

@@ -202,6 +202,11 @@ function shouldSkipTokenRefresh(config?: InternalAxiosRequestConfig): boolean {
     "/auth/register",
     "/auth/forgot-password",
     "/auth/reset-password",
+    "/auth/verify-token",
+    "/auth/refresh",
+    "/auth/google/exchange-code",
+    "/auth/google/callback",
+    "/auth/google/mobile-callback",
   ];
   return publicEndpoints.some((endpoint) => config.url?.includes(endpoint));
 }

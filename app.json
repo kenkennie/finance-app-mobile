@@ -48,7 +48,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "GOOGLE_CLIENT_ID": "329864933818-5rg170gelqrm7hg5immnpf6ucs6578n0.apps.googleusercontent.com "
+      "GOOGLE_CLIENT_ID": "329864933818-5rg170gelqrm7hg5immnpf6ucs6578n0.apps.googleusercontent.com",
+      "GOOGLE_CLIENT_SECRET" : "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"
     }
   }
 }
