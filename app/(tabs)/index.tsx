@@ -127,7 +127,6 @@ export default function Dashboard() {
   const totalExpenses = summary?.totalExpenses || 0;
   const netBalance = totalIncome - totalExpenses;
 
-  // Get currency from user profile or default to USD
   const currency = user?.currency;
 
   // Get time-based greeting

@@ -202,7 +202,7 @@ export default function CategoryManagementScreen() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "KSh",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
