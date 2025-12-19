@@ -57,7 +57,7 @@ const ProfileScreen = () => {
         rightIcons={[
           {
             icon: "edit-3",
-            onPress: () => router.back(),
+            onPress: () => router.replace("/screens/profile/EditProfileScreen"),
           },
         ]}
       />

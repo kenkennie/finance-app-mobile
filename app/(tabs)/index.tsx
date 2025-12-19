@@ -580,7 +580,7 @@ export default function Dashboard() {
                 styles.quickActionCard,
                 { backgroundColor: themeColors.background },
               ]}
-              onPress={() => router.push("/screens/Budgets/BudgetForm")}
+              onPress={() => router.push("/screens/Budgets/addBudget")}
             >
               <PiggyBank
                 size={32}

@@ -69,7 +69,7 @@ const EditProfileScreen = () => {
 
       const successMessage = await updatedUser(updateData);
       showSuccess(successMessage);
-      router.back();
+      router.replace("/(tabs)/profile");
     } catch (error: any) {
       showError(error.message);
     }
