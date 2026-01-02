@@ -49,7 +49,11 @@
     },
     "extra": {
       "GOOGLE_CLIENT_ID": "",
-      "GOOGLE_CLIENT_SECRET" : ""
+      "GOOGLE_CLIENT_SECRET": "",
+      "router": {},
+      "eas": {
+        "projectId": "d3c75b95-d228-48a3-8918-d5e5ad3a94a1"
+      }
     }
   }
 }

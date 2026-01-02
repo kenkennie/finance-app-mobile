@@ -134,7 +134,7 @@ const CategoryDetailsScreen = () => {
         isDark={isDark}
         rightIcons={[
           {
-            icon: "edit-3",
+            icon: "edit",
             onPress: handleEditCategory,
           },
         ]}

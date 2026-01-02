@@ -15,6 +15,7 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  isDark?: boolean;
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -22,7 +23,49 @@ export const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
+  isDark = false,
 }) => {
+  const dynamicStyles = {
+    overlay: {
+      flex: 1,
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      justifyContent: "center" as const,
+      alignItems: "center" as const,
+      padding: spacing.lg,
+    },
+    modal: {
+      backgroundColor: isDark
+        ? colors.dark.background
+        : colors.light.background,
+      borderRadius: borderRadius.xl,
+      width: width - spacing.xl * 2,
+      maxHeight: "90%" as const,
+    },
+    header: {
+      flexDirection: "row" as const,
+      justifyContent: "space-between" as const,
+      alignItems: "center" as const,
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: isDark ? colors.dark.border : colors.light.border,
+    },
+    title: {
+      fontSize: fontSize.xl,
+      fontWeight: "bold" as const,
+      color: isDark ? colors.dark.text.primary : colors.light.text.primary,
+    },
+    closeButton: {
+      padding: spacing.xs,
+    },
+    closeText: {
+      fontSize: fontSize.xl,
+      color: isDark ? colors.dark.text.secondary : colors.light.text.secondary,
+    },
+    content: {
+      padding: spacing.lg,
+    },
+  };
+
   return (
     <RNModal
       visible={visible}
@@ -30,20 +73,20 @@ export const Modal: React.FC<ModalProps> = ({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
+      <View style={dynamicStyles.overlay}>
+        <View style={dynamicStyles.modal}>
           {title && (
-            <View style={styles.header}>
-              <Text style={styles.title}>{title}</Text>
+            <View style={dynamicStyles.header}>
+              <Text style={dynamicStyles.title}>{title}</Text>
               <TouchableOpacity
                 onPress={onClose}
-                style={styles.closeButton}
+                style={dynamicStyles.closeButton}
               >
-                <Text style={styles.closeText}>✕</Text>
+                <Text style={dynamicStyles.closeText}>✕</Text>
               </TouchableOpacity>
             </View>
           )}
-          <View style={styles.content}>{children}</View>
+          <View style={dynamicStyles.content}>{children}</View>
         </View>
       </View>
     </RNModal>
@@ -51,42 +94,3 @@ export const Modal: React.FC<ModalProps> = ({
 };
 
 const { width } = Dimensions.get("window");
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: spacing.lg,
-  },
-  modal: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.xl,
-    width: width - spacing.xl * 2,
-    maxHeight: "80%",
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    fontSize: fontSize.xl,
-    fontWeight: "bold",
-    color: colors.text.primary,
-  },
-  closeButton: {
-    padding: spacing.xs,
-  },
-  closeText: {
-    fontSize: fontSize.xl,
-    color: colors.text.secondary,
-  },
-  content: {
-    padding: spacing.lg,
-  },
-});

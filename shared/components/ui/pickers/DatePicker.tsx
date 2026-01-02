@@ -6,10 +6,11 @@ import { useTheme } from "@/theme/context/ThemeContext";
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 interface DatePickerProps {
-  value: Date | string;
+  value?: Date | string;
   onChange: (date: Date) => void;
   error?: string;
   label?: string;
+  showTime?: boolean;
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -17,6 +18,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   onChange,
   error,
   label,
+  showTime = true,
 }) => {
   const { isDark } = useTheme();
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -29,6 +31,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
       if (!isNaN(parsedDate.getTime())) {
         setDate(parsedDate);
       }
+    } else {
+      setDate(new Date());
     }
   }, [value]);
 
@@ -36,6 +40,9 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
+    if (!showTime) {
+      return `${year}-${month}-${day}`;
+    }
     const hours = String(date.getHours()).padStart(2, "0");
     const minutes = String(date.getMinutes()).padStart(2, "0");
     return `${year}-${month}-${day} ${hours}:${minutes}`;
@@ -89,10 +96,15 @@ const DatePicker: React.FC<DatePickerProps> = ({
       <View style={styles.inputRow}>
         <TouchableOpacity
           onPress={showDateSelection}
-          style={[styles.dateInput, styles.datePart]}
+          style={[
+            styles.dateInput,
+            showTime ? styles.datePart : styles.fullWidth,
+          ]}
         >
           <Input
-            value={displayValue.split(" ")[0] || ""}
+            value={
+              showTime ? displayValue.split(" ")[0] || "" : displayValue || ""
+            }
             placeholder="Select date"
             editable={false}
             error={error}
@@ -101,19 +113,21 @@ const DatePicker: React.FC<DatePickerProps> = ({
             isDark={isDark}
           />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={showTimeSelection}
-          style={[styles.dateInput, styles.timePart]}
-        >
-          <Input
-            value={displayValue.split(" ")[1] || ""}
-            placeholder="Select time"
-            editable={false}
-            rightIcon="clock"
-            onRightIconPress={showTimeSelection}
-            isDark={isDark}
-          />
-        </TouchableOpacity>
+        {showTime && (
+          <TouchableOpacity
+            onPress={showTimeSelection}
+            style={[styles.dateInput, styles.timePart]}
+          >
+            <Input
+              value={displayValue.split(" ")[1] || ""}
+              placeholder="Select time"
+              editable={false}
+              rightIcon="clock"
+              onRightIconPress={showTimeSelection}
+              isDark={isDark}
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       {showDatePicker && (
@@ -128,7 +142,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         />
       )}
 
-      {showTimePicker && (
+      {showTime && showTimePicker && (
         <DateTimePicker
           value={date}
           mode="time"
@@ -168,6 +182,9 @@ const styles = StyleSheet.create({
   },
   timePart: {
     // Time input specific styles if needed
+  },
+  fullWidth: {
+    flex: 1,
   },
 });
 
