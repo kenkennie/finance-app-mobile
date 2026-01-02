@@ -15,7 +15,7 @@ import { Card } from "@/shared/components/ui/Card";
 import { Input } from "@/shared/components/ui/Input";
 import { Button } from "@/shared/components/ui/Button";
 import { Typography } from "@/shared/components/ui/Typography";
-import DatePicker from "@/shared/components/ui/pickers/DatePicker";
+import DateSelector from "@/shared/components/ui/pickers/DateSelector";
 import SearchableDropdown from "@/shared/components/ui/SearchableDropdown";
 import SettingRow from "../Accounts/SettingRow";
 import { useGoalStore } from "@/store/goalStore";
@@ -263,12 +263,11 @@ export default function GoalForm({ mode }: GoalFormProps) {
             control={control}
             name="targetDate"
             render={({ field: { onChange, value } }) => (
-              <DatePicker
+              <DateSelector
                 value={value}
                 onChange={onChange}
                 label="Target Date (Optional)"
                 error={errors.targetDate?.message}
-                showTime={false}
               />
             )}
           />
@@ -427,12 +426,11 @@ export default function GoalForm({ mode }: GoalFormProps) {
             control={control}
             name="targetDate"
             render={({ field: { onChange, value } }) => (
-              <DatePicker
+              <DateSelector
                 value={value}
                 onChange={onChange}
                 label="Target Date (Optional)"
                 error={errors.targetDate?.message}
-                showTime={false}
               />
             )}
           />

@@ -18,6 +18,8 @@ export interface GoalContribution {
   date: string;
   createdAt: string;
   updatedAt: string;
+  formattedAmount?: string;
+  formattedDate?: string;
 }
 
 export interface Goal {
@@ -27,6 +29,7 @@ export interface Goal {
   description?: string;
   targetAmount: number;
   currentAmount: number;
+  remainingAmount?: number;
   targetDate?: string;
   priority: "LOW" | "MEDIUM" | "HIGH";
   status: GoalStatus;
@@ -45,8 +48,10 @@ export interface Goal {
   isCompleted?: boolean;
   isOverdue?: boolean;
   formattedTargetDate?: string;
+  formattedCreatedAt?: string;
   formattedCurrentAmount?: string;
   formattedTargetAmount?: string;
+  formattedRemainingAmount?: string;
 }
 
 export interface GoalDetails extends Goal {

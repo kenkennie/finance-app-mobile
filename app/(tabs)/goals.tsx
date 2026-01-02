@@ -15,6 +15,7 @@ import { SearchBar } from "@/shared/components/ui/SearchBar";
 import { Typography } from "@/shared/components/ui/Typography";
 import { Card } from "@/shared/components/ui/Card";
 import { TabBar } from "@/shared/components/ui/TabBar";
+import { GoalCard } from "@/app/screens/Goals/GoalCard";
 import { useGoalStore } from "@/store/goalStore";
 import { Goal } from "@/shared/types/goal.types";
 import { colors } from "@/theme/colors";
@@ -160,127 +161,13 @@ const Goals = () => {
   };
 
   const renderGoalCard = ({ item: goal }: { item: Goal }) => {
-    const progressPercentage = goal.progressPercentage || 0;
-
     return (
-      <Card
-        isDark={isDark}
-        style={styles.goalCard}
+      <GoalCard
+        goal={goal}
         onPress={() => router.push(`/screens/Goals/${goal.id}` as any)}
-      >
-        <View style={styles.goalHeader}>
-          <Typography
-            variant="h3"
-            style={[styles.goalName, ...(isDark ? [styles.goalNameDark] : [])]}
-          >
-            {goal.name}
-          </Typography>
-          <View
-            style={[
-              styles.priorityBadge,
-              { backgroundColor: getPriorityColor(goal.priority) },
-            ]}
-          >
-            <Typography
-              variant="caption"
-              style={styles.priorityText}
-            >
-              {goal.priority}
-            </Typography>
-          </View>
-        </View>
-
-        {goal.description && (
-          <Typography
-            variant="body2"
-            style={[
-              styles.goalDescription,
-              ...(isDark ? [styles.goalDescriptionDark] : []),
-            ]}
-            numberOfLines={2}
-          >
-            {goal.description}
-          </Typography>
-        )}
-
-        <View style={styles.progressSection}>
-          <View style={styles.amountsRow}>
-            <Typography
-              variant="body2"
-              style={[
-                styles.currentAmount,
-                ...(isDark ? [styles.currentAmountDark] : []),
-              ]}
-            >
-              ${goal.currentAmount.toLocaleString()}
-            </Typography>
-            <Typography
-              variant="body2"
-              style={[
-                styles.targetAmount,
-                ...(isDark ? [styles.targetAmountDark] : []),
-              ]}
-            >
-              of ${goal.targetAmount.toLocaleString()}
-            </Typography>
-          </View>
-
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${progressPercentage}%` },
-                { backgroundColor: getProgressColor(progressPercentage) },
-              ]}
-            />
-          </View>
-
-          <Typography
-            variant="caption"
-            style={[
-              styles.progressText,
-              ...(isDark ? [styles.progressTextDark] : []),
-            ]}
-          >
-            {progressPercentage.toFixed(1)}% complete
-          </Typography>
-        </View>
-
-        {goal.targetDate && (
-          <View style={styles.dateSection}>
-            <Typography
-              variant="caption"
-              style={[
-                styles.targetDate,
-                ...(isDark ? [styles.targetDateDark] : []),
-              ]}
-            >
-              Target: {new Date(goal.targetDate).toLocaleDateString()}
-            </Typography>
-          </View>
-        )}
-      </Card>
+        isDark={isDark}
+      />
     );
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "HIGH":
-        return "#EF4444";
-      case "MEDIUM":
-        return "#F59E0B";
-      case "LOW":
-        return "#10B981";
-      default:
-        return "#6B7280";
-    }
-  };
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return "#10B981";
-    if (percentage >= 75) return "#3B82F6";
-    if (percentage >= 50) return "#F59E0B";
-    return "#EF4444";
   };
 
   if (isLoading) {
@@ -611,96 +498,6 @@ const styles = StyleSheet.create({
   },
   sectionTitleDark: {
     color: colors.text.white,
-  },
-  goalCard: {
-    marginBottom: 12,
-    padding: 16,
-  },
-  goalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 8,
-  },
-  goalName: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111827",
-    flex: 1,
-    marginRight: 8,
-  },
-  goalNameDark: {
-    color: "#FFF",
-  },
-  priorityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  priorityText: {
-    color: "#FFF",
-    fontSize: 12,
-    fontWeight: "500",
-  },
-  goalDescription: {
-    color: "#6B7280",
-    marginBottom: 12,
-    lineHeight: 20,
-  },
-  goalDescriptionDark: {
-    color: "#9CA3AF",
-  },
-  progressSection: {
-    marginBottom: 8,
-  },
-  amountsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  currentAmount: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#10B981",
-  },
-  currentAmountDark: {
-    color: "#34D399",
-  },
-  targetAmount: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-  targetAmountDark: {
-    color: "#9CA3AF",
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 3,
-    marginBottom: 4,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 12,
-    color: "#6B7280",
-    textAlign: "center",
-  },
-  progressTextDark: {
-    color: "#9CA3AF",
-  },
-  dateSection: {
-    alignItems: "flex-end",
-  },
-  targetDate: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  targetDateDark: {
-    color: "#9CA3AF",
   },
   errorContainer: {
     paddingHorizontal: 16,

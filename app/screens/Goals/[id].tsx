@@ -209,7 +209,7 @@ const GoalDetails = () => {
   }
 
   const progressPercentage = goal.progressPercentage || 0;
-  const remainingAmount = goal.targetAmount - goal.currentAmount;
+  const remainingAmount = goal.remainingAmount || 0;
 
   return (
     <View style={[styles.container, ...(isDark ? [styles.containerDark] : [])]}>
@@ -261,18 +261,6 @@ const GoalDetails = () => {
             </Badge>
           </View>
 
-          {goal.description && (
-            <Typography
-              variant="body1"
-              style={[
-                styles.description,
-                ...(isDark ? [styles.descriptionDark] : []),
-              ]}
-            >
-              {goal.description}
-            </Typography>
-          )}
-
           {/* Progress Section */}
           <View style={styles.progressSection}>
             <View style={styles.amountsRow}>
@@ -290,7 +278,7 @@ const GoalDetails = () => {
                   variant="h3"
                   style={[styles.amountValue, styles.currentAmount]}
                 >
-                  ${formatNumber(goal.currentAmount, 2)}
+                  {goal.formattedCurrentAmount || 0}
                 </Typography>
               </View>
 
@@ -311,7 +299,7 @@ const GoalDetails = () => {
                     ...(isDark ? [styles.amountValueDark] : []),
                   ]}
                 >
-                  ${formatNumber(goal.targetAmount, 2)}
+                  {goal.formattedTargetAmount || 0}
                 </Typography>
               </View>
 
@@ -334,7 +322,8 @@ const GoalDetails = () => {
                       : styles.overAmount,
                   ]}
                 >
-                  ${formatNumber(Math.abs(remainingAmount), 2)}
+                  {remainingAmount > 0 ? "-" : "+"}$
+                  {formatNumber(Math.abs(remainingAmount), 2)}
                 </Typography>
               </View>
             </View>
@@ -362,6 +351,17 @@ const GoalDetails = () => {
 
           {/* Goal Details */}
           <View style={styles.detailsSection}>
+            {goal.description && (
+              <Typography
+                variant="body1"
+                style={[
+                  styles.description,
+                  ...(isDark ? [styles.descriptionDark] : []),
+                ]}
+              >
+                {goal.description}
+              </Typography>
+            )}
             <View style={styles.detailRow}>
               <Typography
                 variant="body2"
@@ -381,7 +381,7 @@ const GoalDetails = () => {
               </Badge>
             </View>
 
-            {goal.targetDate && (
+            {goal.formattedTargetDate && (
               <View style={styles.detailRow}>
                 <Typography
                   variant="body2"
@@ -399,7 +399,7 @@ const GoalDetails = () => {
                     ...(isDark ? [styles.detailValueDark] : []),
                   ]}
                 >
-                  {new Date(goal.targetDate).toLocaleDateString()}
+                  {goal.formattedTargetDate}
                 </Typography>
               </View>
             )}
@@ -421,7 +421,8 @@ const GoalDetails = () => {
                   ...(isDark ? [styles.detailValueDark] : []),
                 ]}
               >
-                {new Date(goal.createdAt).toLocaleDateString()}
+                {goal.formattedCreatedAt ||
+                  new Date(goal.createdAt).toLocaleDateString()}
               </Typography>
             </View>
           </View>
@@ -458,7 +459,9 @@ const GoalDetails = () => {
                       ...(isDark ? [styles.contributionAmountDark] : []),
                     ]}
                   >
-                    +${formatNumber(contribution.amount, 2)}
+                    +
+                    {contribution.formattedAmount ||
+                      `$${formatNumber(contribution.amount, 2)}`}
                   </Typography>
                   {contribution.description && (
                     <Typography
@@ -480,7 +483,8 @@ const GoalDetails = () => {
                       ...(isDark ? [styles.contributionDateDark] : []),
                     ]}
                   >
-                    {new Date(contribution.date).toLocaleDateString()}
+                    {contribution.formattedDate ||
+                      new Date(contribution.date).toLocaleDateString()}
                   </Typography>
                   {!goal.status.isCompleted && (
                     <View style={styles.actionButtons}>
@@ -677,7 +681,7 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
   },
   amountValue: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "600",
   },
   amountValueDark: {
