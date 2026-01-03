@@ -21,10 +21,12 @@ import {
   BarChart3,
   ArrowRightLeft,
   ListChevronsDownUp,
+  Target,
 } from "lucide-react-native";
 import { useAccountStore } from "@/store/accountStore";
 import { useTransactionStore } from "@/store/transactionStore";
 import { useBudgetStore } from "@/store/budgetStore";
+import { useGoalStore } from "@/store/goalStore";
 import { useAuthStore } from "@/store/authStore";
 import {
   Card,
@@ -62,11 +64,48 @@ export default function Dashboard() {
     getBudgets,
     isLoading: budgetsLoading,
   } = useBudgetStore();
+  const { goals = [], getGoals, isLoading: goalsLoading } = useGoalStore();
 
   // Ensure we always have arrays to prevent "length of undefined" errors
   const safeTransactions = transactions || [];
   const safeAccounts = accounts || [];
   const safeBudgets = budgets || [];
+  const safeGoals = goals || [];
+
+  // Filter and sort upcoming goals
+  const upcomingGoals = useMemo(() => {
+    const now = new Date();
+    const thirtyDaysFromNow = new Date(
+      now.getTime() + 30 * 24 * 60 * 60 * 1000
+    );
+
+    return safeGoals
+      .filter((goal: any) => {
+        // Only show active goals with target dates
+        if (goal.status?.isCompleted || !goal.targetDate) return false;
+
+        const targetDate = new Date(goal.targetDate);
+        // Show goals due within 30 days or already overdue
+        return targetDate <= thirtyDaysFromNow;
+      })
+      .sort((a: any, b: any) => {
+        // Sort by due date first, then by priority
+        const aDate = new Date(a.targetDate);
+        const bDate = new Date(b.targetDate);
+
+        if (aDate.getTime() !== bDate.getTime()) {
+          return aDate.getTime() - bDate.getTime(); // Soonest first
+        }
+
+        // If same due date, sort by priority (HIGH first)
+        const priorityOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+        return (
+          (priorityOrder[b.priority as keyof typeof priorityOrder] || 0) -
+          (priorityOrder[a.priority as keyof typeof priorityOrder] || 0)
+        );
+      })
+      .slice(0, 4); // Show top 4
+  }, [safeGoals]);
 
   // Calculate tab bar height to ensure content isn't hidden
   const tabBarHeight = (Platform.OS === "ios" ? 120 : 100) + insets.bottom;
@@ -78,6 +117,7 @@ export default function Dashboard() {
         await getAccounts();
         await getRecentTransactions(50);
         await getBudgets();
+        await getGoals();
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       }
@@ -95,6 +135,7 @@ export default function Dashboard() {
         getAccounts(),
         getRecentTransactions(50),
         getBudgets(),
+        getGoals(),
       ]);
     } catch (error) {
       console.error("Failed to refresh dashboard data:", error);
@@ -237,6 +278,10 @@ export default function Dashboard() {
     "lastWeek" | "thisWeek" | "lastMonth" | "thisMonth" | "thisYear"
   >("thisMonth");
 
+  const [selectedBalanceTimePeriod, setSelectedBalanceTimePeriod] = useState<
+    "lastWeek" | "thisWeek" | "lastMonth" | "thisMonth" | "thisYear"
+  >("thisMonth");
+
   const categoryData = useMemo(() => {
     // Ensure transactions is always an array
     const safeTransactions = transactions || [];
@@ -319,6 +364,193 @@ export default function Dashboard() {
     }));
   }, [safeTransactions, selectedTimePeriod, themeColors.text.primary]);
 
+  // Account Balance Trends data
+  const balanceTrendsData = useMemo(() => {
+    // Calculate date range based on selected balance time period
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+
+    switch (selectedBalanceTimePeriod) {
+      case "lastWeek":
+        startDate = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+        endDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case "thisWeek":
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        endDate = now;
+        break;
+      case "lastMonth":
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+        startDate = lastMonth;
+        endDate = lastMonthEnd;
+        break;
+      case "thisMonth":
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = now;
+        break;
+      case "thisYear":
+        startDate = new Date(now.getFullYear(), 0, 1);
+        endDate = now;
+        break;
+      default:
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = now;
+    }
+
+    // Generate array of dates from start to end
+    const dates: Date[] = [];
+    const current = new Date(startDate);
+    while (current <= endDate) {
+      dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+
+    // Filter transactions within the date range
+    const periodTransactions = safeTransactions.filter((t: any) => {
+      const transactionDate = new Date(t.date);
+      return transactionDate >= startDate && transactionDate <= endDate;
+    });
+
+    // Sort transactions by date
+    periodTransactions.sort(
+      (a: any, b: any) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    // Calculate balance trends for each account
+    const accountTrends: {
+      [accountId: string]: { date: string; balance: number }[];
+    } = {};
+
+    // Initialize with opening balances
+    safeAccounts.forEach((account: any) => {
+      accountTrends[account.id] = [
+        {
+          date: startDate.toISOString().split("T")[0],
+          balance: parseFloat(account.openingBalance || account.balance || 0),
+        },
+      ];
+    });
+
+    // Process transactions chronologically
+    periodTransactions.forEach((transaction: any) => {
+      const transactionDate = transaction.date.split("T")[0];
+
+      // Update balances for all accounts based on transaction
+      transaction.TransactionItems?.forEach((item: any) => {
+        if (item.accountId && accountTrends[item.accountId]) {
+          const currentBalance =
+            accountTrends[item.accountId][
+              accountTrends[item.accountId].length - 1
+            ].balance;
+          const amount = parseFloat(item.amount) || 0;
+
+          // For expenses, subtract; for income, add
+          const newBalance =
+            transaction.transactionType === "INCOME"
+              ? currentBalance + amount
+              : currentBalance - amount;
+
+          accountTrends[item.accountId].push({
+            date: transactionDate,
+            balance: newBalance,
+          });
+        }
+      });
+    });
+
+    // Fill in missing dates for each account (maintain last known balance)
+    Object.keys(accountTrends).forEach((accountId) => {
+      const accountData = accountTrends[accountId];
+      const filledData = [];
+
+      dates.forEach((date) => {
+        const dateStr = date.toISOString().split("T")[0];
+        const existingData = accountData.find((d) => d.date === dateStr);
+
+        if (existingData) {
+          filledData.push(existingData);
+        } else {
+          // Use the last known balance
+          const lastBalance =
+            filledData.length > 0
+              ? filledData[filledData.length - 1].balance
+              : accountData[0]?.balance || 0;
+          filledData.push({ date: dateStr, balance: lastBalance });
+        }
+      });
+
+      accountTrends[accountId] = filledData;
+    });
+
+    // Prepare chart data
+    const colors = [
+      "#FF6384",
+      "#36A2EB",
+      "#FFCE56",
+      "#4BC0C0",
+      "#9966FF",
+      "#FF9F40",
+      "#FF6B6B",
+      "#4ECDC4",
+      "#45B7D1",
+      "#96CEB4",
+    ];
+
+    const datasets = Object.keys(accountTrends)
+      .slice(0, 5) // Limit to 5 accounts for readability
+      .map((accountId, index) => {
+        const account = safeAccounts.find((acc: any) => acc.id === accountId);
+        const accountName = account?.accountName || `Account ${index + 1}`;
+
+        return {
+          data: accountTrends[accountId].map((point) => point.balance),
+          color: (opacity = 1) =>
+            colors[index % colors.length]
+              .replace(")", `, ${opacity})`)
+              .replace("rgb", "rgba"),
+          strokeWidth: 2,
+          label:
+            accountName.length > 15
+              ? accountName.substring(0, 15) + "..."
+              : accountName,
+        };
+      });
+
+    // For labels, adjust based on period length
+    let labels;
+    if (dates.length <= 7) {
+      labels = dates.map((date) =>
+        date.toLocaleDateString("en-US", { weekday: "short" })
+      );
+    } else if (dates.length <= 31) {
+      labels = dates.map((date) => date.getDate().toString());
+    } else {
+      // For longer periods, show monthly labels
+      const monthlyLabels: string[] = [];
+      let currentMonth = -1;
+      dates.forEach((date) => {
+        if (date.getMonth() !== currentMonth) {
+          monthlyLabels.push(
+            date.toLocaleDateString("en-US", { month: "short" })
+          );
+          currentMonth = date.getMonth();
+        } else {
+          monthlyLabels.push("");
+        }
+      });
+      labels = monthlyLabels;
+    }
+
+    return {
+      labels,
+      datasets,
+      legend: datasets.map((ds) => ds.label),
+    };
+  }, [safeTransactions, safeAccounts, selectedBalanceTimePeriod]);
+
   const chartConfig = {
     backgroundColor: themeColors.background,
     backgroundGradientFrom: themeColors.background,
@@ -341,7 +573,12 @@ export default function Dashboard() {
     },
   };
 
-  if (accountsLoading || transactionsLoading || budgetsLoading) {
+  if (
+    accountsLoading ||
+    transactionsLoading ||
+    budgetsLoading ||
+    goalsLoading
+  ) {
     return (
       <SafeAreaView
         style={[
@@ -550,6 +787,7 @@ export default function Dashboard() {
           >
             Quick Actions
           </Typography>
+          <View style={styles.sectionDivider} />
           <View style={styles.quickActionsGrid}>
             <TouchableOpacity
               style={[
@@ -640,6 +878,28 @@ export default function Dashboard() {
                 Category
               </Typography>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.quickActionCard,
+                { backgroundColor: themeColors.background },
+              ]}
+              onPress={() => router.push("/screens/Goals/AddGoal")}
+            >
+              <Target
+                size={32}
+                color={colors.secondary}
+              />
+              <Typography
+                variant="caption"
+                style={[
+                  styles.quickActionText,
+                  { color: themeColors.text.secondary },
+                ]}
+              >
+                Goal
+              </Typography>
+            </TouchableOpacity>
           </View>
         </Card>
 
@@ -655,6 +915,7 @@ export default function Dashboard() {
             >
               My Accounts
             </Typography>
+            <View style={styles.sectionDivider} />
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -705,6 +966,7 @@ export default function Dashboard() {
           >
             Recent Transactions
           </Typography>
+          <View style={styles.sectionDivider} />
           {safeTransactions.slice(0, 5).map((transaction: any) => (
             <View
               key={transaction.id}
@@ -772,6 +1034,7 @@ export default function Dashboard() {
             >
               Current Budgets
             </Typography>
+            <View style={styles.sectionDivider} />
 
             {safeBudgets.slice(0, 4).map((budget: any) => {
               const budgetStat = budgetDetails[budget.id];
@@ -850,6 +1113,122 @@ export default function Dashboard() {
           </Card>
         )}
 
+        {/* Upcoming Goals */}
+        {upcomingGoals && upcomingGoals.length > 0 && (
+          <Card
+            isDark={isDark}
+            style={styles.goalsCard}
+          >
+            <Typography
+              variant="h3"
+              style={[styles.sectionTitle, { color: themeColors.text.primary }]}
+            >
+              Upcoming Goals
+            </Typography>
+            <View style={styles.sectionDivider} />
+
+            {upcomingGoals.map((goal: any) => {
+              const targetDate = new Date(goal.targetDate);
+              const now = new Date();
+              const daysUntilDue = Math.ceil(
+                (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+              );
+              const isOverdue = daysUntilDue < 0;
+              const isDueSoon = daysUntilDue <= 7 && daysUntilDue >= 0;
+
+              return (
+                <View
+                  key={goal.id}
+                  style={styles.goalItem}
+                >
+                  <View style={styles.goalHeader}>
+                    <Typography
+                      variant="body1"
+                      style={[
+                        styles.goalName,
+                        { color: themeColors.text.primary },
+                      ]}
+                    >
+                      {goal.name}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      style={[
+                        styles.goalAmount,
+                        {
+                          color:
+                            goal.progressPercentage >= 100
+                              ? colors.success
+                              : themeColors.text.secondary,
+                        },
+                      ]}
+                    >
+                      {goal.formattedCurrentAmount} /{" "}
+                      {goal.formattedTargetAmount}
+                    </Typography>
+                  </View>
+                  <View
+                    style={[
+                      styles.progressBarContainer,
+                      { backgroundColor: isDark ? "#374151" : "#E5E7EB" },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.progressBar,
+                        {
+                          width: `${Math.min(
+                            goal.progressPercentage || 0,
+                            100
+                          )}%`,
+                          backgroundColor:
+                            (goal.progressPercentage || 0) >= 100
+                              ? colors.success
+                              : (goal.progressPercentage || 0) >= 80
+                              ? colors.warning
+                              : colors.primary,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.goalFooter}>
+                    <Typography
+                      variant="caption"
+                      style={[
+                        styles.goalStatus,
+                        {
+                          color: isOverdue
+                            ? colors.expense
+                            : isDueSoon
+                            ? colors.warning
+                            : colors.text.tertiary,
+                        },
+                      ]}
+                    >
+                      {isOverdue
+                        ? `${Math.abs(daysUntilDue)} days overdue`
+                        : daysUntilDue === 0
+                        ? "Due today"
+                        : daysUntilDue === 1
+                        ? "Due tomorrow"
+                        : `Due in ${daysUntilDue} days`}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      style={[
+                        styles.goalPercentage,
+                        { color: colors.text.tertiary },
+                      ]}
+                    >
+                      {(goal.progressPercentage || 0).toFixed(1)}% complete
+                    </Typography>
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
+        )}
+
         {/* Weekly Spending Chart */}
         <Card
           isDark={isDark}
@@ -861,6 +1240,7 @@ export default function Dashboard() {
           >
             Weekly Spending
           </Typography>
+          <View style={styles.sectionDivider} />
 
           {/* Time Period Selector */}
           <View style={styles.timePeriodSelector}>
@@ -925,6 +1305,7 @@ export default function Dashboard() {
           >
             Spending by Category
           </Typography>
+          <View style={styles.sectionDivider} />
 
           {/* Time Period Selector */}
           <View style={styles.timePeriodSelector}>
@@ -1106,6 +1487,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
   },
   sectionTitle: {
+    marginBottom: spacing.sm,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: "rgba(0,0,0,0.1)",
     marginBottom: spacing.md,
   },
   chart: {
@@ -1519,5 +1905,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
+  },
+  goalsCard: {
+    marginVertical: spacing.md,
+    padding: spacing.lg,
+  },
+  goalItem: {
+    marginBottom: spacing.lg,
+  },
+  goalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.sm,
+  },
+  goalName: {
+    fontWeight: "600",
+    flex: 1,
+  },
+  goalAmount: {
+    fontSize: 14,
+  },
+  goalPercentage: {
+    fontSize: 12,
+    textAlign: "right",
+  },
+  goalFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.xs,
+  },
+  goalStatus: {
+    fontSize: 12,
+    fontWeight: "500",
   },
 });
