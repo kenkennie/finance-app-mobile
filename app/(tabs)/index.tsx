@@ -364,6 +364,128 @@ export default function Dashboard() {
     }));
   }, [safeTransactions, selectedTimePeriod, themeColors.text.primary]);
 
+  // Spending Forecast data
+  const [forecastMonths, setForecastMonths] = useState<3 | 6 | 12>(6);
+
+  const spendingForecastData = useMemo(() => {
+    const now = new Date();
+    const historicalMonths = 6; // Use last 6 months for forecasting
+
+    // Generate historical data points (last 6 months)
+    const historicalData = [];
+    for (let i = historicalMonths - 1; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+
+      const monthTransactions = safeTransactions.filter((t: any) => {
+        const transactionDate = new Date(t.date);
+        return (
+          t.transactionType === "EXPENSE" &&
+          transactionDate >= date &&
+          transactionDate < nextMonth
+        );
+      });
+
+      const monthSpending = monthTransactions.reduce(
+        (sum: number, t: any) => sum + (parseFloat(t.totalAmount) || 0),
+        0
+      );
+
+      historicalData.push({
+        month: date.toLocaleDateString("en-US", {
+          month: "short",
+          year: "2-digit",
+        }),
+        actual: monthSpending,
+        date: date,
+      });
+    }
+
+    // Calculate moving average for forecasting
+    const movingAveragePeriod = 3;
+    const forecasts = [];
+
+    // Calculate trend from historical data
+    const recentData = historicalData.slice(-movingAveragePeriod);
+    const avgSpending =
+      recentData.reduce((sum, item) => sum + item.actual, 0) /
+      recentData.length;
+
+    // Calculate trend (slope) using linear regression on recent data
+    const n = recentData.length;
+    const sumX = recentData.reduce((sum, _, index) => sum + index, 0);
+    const sumY = recentData.reduce((sum, item) => sum + item.actual, 0);
+    const sumXY = recentData.reduce(
+      (sum, item, index) => sum + index * item.actual,
+      0
+    );
+    const sumXX = recentData.reduce((sum, _, index) => sum + index * index, 0);
+
+    const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    // Generate forecast points
+    for (let i = 1; i <= forecastMonths; i++) {
+      const forecastDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      const monthsFromStart = historicalMonths + i - 1;
+      const forecastValue = Math.max(0, slope * monthsFromStart + intercept);
+
+      forecasts.push({
+        month: forecastDate.toLocaleDateString("en-US", {
+          month: "short",
+          year: "2-digit",
+        }),
+        forecast: forecastValue,
+        date: forecastDate,
+      });
+    }
+
+    // Calculate budget comparison (monthly average budget)
+    const totalBudgetAllocated = safeBudgets.reduce((sum, budget) => {
+      const budgetDetail = budgetDetails[budget.id];
+      return sum + (budgetDetail?.totalAllocated || 0);
+    }, 0);
+
+    const monthlyBudgetAverage = totalBudgetAllocated / 12; // Assuming annual budgets
+
+    // Generate labels with proper spacing to avoid crowding
+    const allData = [...historicalData, ...forecasts];
+    const totalMonths = allData.length;
+
+    // For readability, show labels every 2 months for short periods, every 3 for longer ones
+    const labelInterval = totalMonths <= 9 ? 1 : totalMonths <= 15 ? 2 : 3;
+    const labels = allData.map((item, index) =>
+      index % labelInterval === 0 ? item.month : ""
+    );
+
+    return {
+      historical: historicalData,
+      forecasts: forecasts,
+      budgetLine: monthlyBudgetAverage,
+      labels: labels,
+      datasets: [
+        {
+          data: [
+            ...historicalData.map((d) => d.actual),
+            ...forecasts.map((d) => d.forecast),
+          ],
+          color: (opacity = 1) => `rgba(239, 68, 68, ${opacity})`,
+          strokeWidth: 2,
+          label: "Spending",
+        },
+        {
+          data: Array(historicalData.length)
+            .fill(monthlyBudgetAverage)
+            .concat(Array(forecasts.length).fill(monthlyBudgetAverage)),
+          color: (opacity = 1) => `rgba(34, 197, 94, ${opacity})`,
+          strokeWidth: 2,
+          strokeDasharray: [5, 5],
+          label: "Budget Target",
+        },
+      ],
+    };
+  }, [safeTransactions, safeBudgets, budgetDetails, forecastMonths]);
+
   // Account Balance Trends data
   const balanceTrendsData = useMemo(() => {
     // Calculate date range based on selected balance time period
@@ -464,7 +586,7 @@ export default function Dashboard() {
     // Fill in missing dates for each account (maintain last known balance)
     Object.keys(accountTrends).forEach((accountId) => {
       const accountData = accountTrends[accountId];
-      const filledData = [];
+      const filledData: { date: string; balance: number }[] = [];
 
       dates.forEach((date) => {
         const dateStr = date.toISOString().split("T")[0];
@@ -1294,6 +1416,154 @@ export default function Dashboard() {
           />
         </Card>
 
+        {/* Spending Forecast Chart */}
+        <Card
+          isDark={isDark}
+          style={styles.chartCard}
+        >
+          <Typography
+            variant="h3"
+            style={[styles.sectionTitle, { color: themeColors.text.primary }]}
+          >
+            Spending Forecast
+          </Typography>
+          <View style={styles.sectionDivider} />
+
+          {/* Forecast Period Selector */}
+          <View style={styles.timePeriodSelector}>
+            <Typography
+              variant="body2"
+              style={[
+                styles.forecastLabel,
+                { color: themeColors.text.secondary },
+              ]}
+            >
+              Forecast Horizon:
+            </Typography>
+            {[
+              { key: 3, label: "3 Months" },
+              { key: 6, label: "6 Months" },
+              { key: 12, label: "12 Months" },
+            ].map((period) => (
+              <TouchableOpacity
+                key={period.key}
+                style={[
+                  styles.timePeriodButton,
+                  forecastMonths === period.key &&
+                    styles.timePeriodButtonActive,
+                  {
+                    backgroundColor:
+                      forecastMonths === period.key
+                        ? colors.primary
+                        : "transparent",
+                  },
+                ]}
+                onPress={() => setForecastMonths(period.key as any)}
+              >
+                <Typography
+                  variant="caption"
+                  style={[
+                    styles.timePeriodButtonText,
+                    {
+                      color:
+                        forecastMonths === period.key
+                          ? colors.text.white
+                          : themeColors.text.secondary,
+                    },
+                  ]}
+                >
+                  {period.label}
+                </Typography>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <LineChart
+            data={{
+              labels: spendingForecastData.labels,
+              datasets: spendingForecastData.datasets,
+            }}
+            width={width - spacing.lg * 2}
+            height={220}
+            chartConfig={chartConfig}
+            bezier
+            style={styles.chart}
+          />
+
+          {/* Forecast Summary */}
+          <View style={styles.forecastSummary}>
+            <View style={styles.forecastSummaryItem}>
+              <Typography
+                variant="caption"
+                style={[
+                  styles.forecastSummaryLabel,
+                  { color: themeColors.text.tertiary },
+                ]}
+              >
+                Avg Monthly Spending
+              </Typography>
+              <Typography
+                variant="body2"
+                style={[
+                  styles.forecastSummaryValue,
+                  { color: themeColors.text.primary },
+                ]}
+              >
+                {currency}
+                {spendingForecastData.historical.length > 0
+                  ? (
+                      spendingForecastData.historical.reduce(
+                        (sum, item) => sum + item.actual,
+                        0
+                      ) / spendingForecastData.historical.length
+                    ).toFixed(0)
+                  : "0"}
+              </Typography>
+            </View>
+            <View style={styles.forecastSummaryItem}>
+              <Typography
+                variant="caption"
+                style={[
+                  styles.forecastSummaryLabel,
+                  { color: themeColors.text.tertiary },
+                ]}
+              >
+                Projected Next Month
+              </Typography>
+              <Typography
+                variant="body2"
+                style={[
+                  styles.forecastSummaryValue,
+                  { color: themeColors.text.primary },
+                ]}
+              >
+                {currency}
+                {spendingForecastData.forecasts.length > 0
+                  ? spendingForecastData.forecasts[0].forecast.toFixed(0)
+                  : "0"}
+              </Typography>
+            </View>
+            <View style={styles.forecastSummaryItem}>
+              <Typography
+                variant="caption"
+                style={[
+                  styles.forecastSummaryLabel,
+                  { color: themeColors.text.tertiary },
+                ]}
+              >
+                Budget Target
+              </Typography>
+              <Typography
+                variant="body2"
+                style={[styles.forecastSummaryValue, { color: colors.success }]}
+              >
+                {currency}
+                {spendingForecastData.budgetLine.toFixed(0)}
+              </Typography>
+            </View>
+          </View>
+        </Card>
+
         {/* Category Spending Pie Chart */}
         <Card
           isDark={isDark}
@@ -1939,5 +2209,32 @@ const styles = StyleSheet.create({
   goalStatus: {
     fontSize: 12,
     fontWeight: "500",
+  },
+  forecastLabel: {
+    fontSize: 12,
+    marginRight: spacing.sm,
+    alignSelf: "center",
+  },
+  forecastSummary: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.1)",
+  },
+  forecastSummaryItem: {
+    alignItems: "center",
+    flex: 1,
+  },
+  forecastSummaryLabel: {
+    fontSize: 10,
+    marginBottom: spacing.xs / 2,
+    textAlign: "center",
+  },
+  forecastSummaryValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    textAlign: "center",
   },
 });
